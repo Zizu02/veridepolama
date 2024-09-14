@@ -1,17 +1,15 @@
 const express = require('express');
 const app = express();
-
-// Port numarasını çevresel değişkenden al, eğer yoksa varsayılan olarak 3000 kullan
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000; // Port'u çevresel değişkenden al
 
 app.use(express.json());
 
-// Örnek bir endpoint
-app.get('/', (req, res) => {
-    res.send('Hello, World!');
+app.post('/create_account', (req, res) => {
+    const { email, password, address, phone } = req.body;
+    // Basit yanıt
+    res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
 });
 
-// Uygulamayı belirtilen portta başlat
-app.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda çalışıyor`);
+app.listen(port, () => {
+    console.log(`Sunucu ${port} portunda çalışıyor`);
 });
