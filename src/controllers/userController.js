@@ -1,20 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const userService = require('../services/userService');
+const db = require('../config/database'); // Veritabanı bağlantısı
 
-// Kullanıcı bilgilerini döndüren endpoint
-router.get('/get_user_info', async (req, res) => {
-    const email = req.query.email;
-    try {
-        const userInfo = await userService.getUserInfoByEmail(email);
-        if (userInfo) {
-            res.json({ success: true, user_info: userInfo });
-        } else {
-            res.json({ success: false, message: 'Kullanıcı bulunamadı' });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Sunucu hatası', error });
-    }
-});
+async function getUserInfoByEmail(email) {
+    // Bu sadece örnek bir kod, veritabanı bağlantısı ve sorgusu gerçek uygulamanızda farklı olabilir
+    return db.query('SELECT * FROM users WHERE email = ?', [email])
+        .then(result => result[0])
+        .catch(error => {
+            console.error('Veritabanı hatası:', error);
+            throw error;
+        });
+}
 
-module.exports = router;
+module.exports = {
+    getUserInfoByEmail
+};
