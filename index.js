@@ -1,11 +1,29 @@
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
+app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+// Veritabanına bağlantı
+// const db = require('./config/database');
+
+// Kullanıcı oluşturma endpoint'i
+app.post('/create_account', (req, res) => {
+    const { email, password, address, phone } = req.body;
+
+    // Kullanıcı veritabanına eklenir
+    // db.query('INSERT INTO users (email, password, address, phone) VALUES (?, ?, ?, ?)', [email, password, address, phone])
+    // .then(() => {
+    //     res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
+    // })
+    // .catch(error => {
+    //     res.status(500).json({ success: false, message: 'Veritabanı hatası', error });
+    // });
+
+    // Şimdilik sadece basit bir yanıt döndürüyoruz
+    res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// Sunucu başlatma
+const PORT = process.env.PORT || 3000; // Render ortamında PORT kullanılır
+app.listen(PORT, () => {
+    console.log(`Sunucu ${PORT} portunda çalışıyor`);
 });
