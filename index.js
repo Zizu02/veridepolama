@@ -10,6 +10,9 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 5432, // Varsayılan port 5432
+    ssl: {
+        rejectUnauthorized: false // SSL sertifikalarını doğrulama, genellikle Render gibi platformlar için gereklidir
+    }
 });
 
 app.use(cors({
