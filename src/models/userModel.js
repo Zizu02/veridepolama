@@ -1,22 +1,18 @@
-// src/models/userModel.js
-const { Pool } = require('pg');
-const pool = new Pool();
+const db = require('../config/database'); // Veritabanı bağlantısı
 
-const getUsers = async () => {
-  const result = await pool.query('SELECT * FROM users');
-  return result.rows;
-};
-
-const createUser = async (user) => {
-  const result = await pool.query(
-    'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *',
-    [user.name, user.email]
-  );
-  return result.rows[0];
-};
+async function getUserInfoByEmail(email) {
+    // Veritabanı sorgusu
+    try {
+        const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        return result.rows[0]; // PostgreSQL kullanıyorsanız `rows` dizisinden ilk elemanı döndürün
+    } catch (error) {
+        console.error('Veritabanı hatası:', error);
+        throw error;
+    }
+}
 
 module.exports = {
-  getUsers,
-  createUser
+    getUserInfoByEmail
 };
+
 
