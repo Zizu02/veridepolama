@@ -12,7 +12,7 @@ app.post('/create_account', async (req, res) => {
     const { email, password, address, phone } = req.body;
     
     try {
-        // Veritabanına bağlanma ve veri ekleme
+        // Veritabanına veri ekleme
         await pool.query(
             'INSERT INTO "user" (email, password_hash, address, phone) VALUES ($1, $2, $3, $4)',
             [email, password, address, phone]
@@ -23,6 +23,7 @@ app.post('/create_account', async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 app.listen(process.env.PORT || 3000, () => {
