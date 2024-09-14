@@ -1,18 +1,17 @@
 const express = require('express');
 const app = express();
+
+// Port numarasını çevresel değişkenden al, eğer yoksa varsayılan olarak 3000 kullan
+const PORT = process.env.PORT || 3000;
+
 app.use(express.json());
 
-// Kullanıcı oluşturma endpoint'i
-app.post('/create_account', (req, res) => {
-    const { email, password, address, phone } = req.body;
-
-    // Veritabanı işlemleri veya iş mantığı burada olacak
-    // Basit bir yanıt döndürüyoruz
-    res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
+// Örnek bir endpoint
+app.get('/', (req, res) => {
+    res.send('Hello, World!');
 });
 
-// Sunucu başlatma
-const PORT = process.env.PORT || 3000; // Render ortamında PORT kullanılır
+// Uygulamayı belirtilen portta başlat
 app.listen(PORT, () => {
     console.log(`Sunucu ${PORT} portunda çalışıyor`);
 });
