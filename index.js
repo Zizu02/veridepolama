@@ -9,7 +9,7 @@ const pool = new Pool({
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
+    port: process.env.DB_PORT || 5432, // Varsayılan port 5432
 });
 
 app.use(cors({
@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.post('/create_account', async (req, res) => {
     const { email, password, address, phone } = req.body;
-    
+
     try {
         const result = await pool.query(
             'INSERT INTO "user" (email, password_hash, address, phone) VALUES ($1, $2, $3, $4)',
