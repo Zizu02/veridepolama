@@ -6,7 +6,8 @@ app.use(express.json());
 app.post('/create_account', (req, res) => {
     const { email, password, address, phone } = req.body;
 
-    // Şimdilik sadece basit bir yanıt döndürüyoruz
+    // Veritabanı işlemleri veya iş mantığı burada olacak
+    // Basit bir yanıt döndürüyoruz
     res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
 });
 
