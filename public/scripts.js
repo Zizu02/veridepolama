@@ -9,7 +9,12 @@ async function fetchUserInfo() {
     }
 
     // E-posta adresini sayfada göstermek için
-    document.getElementById('userEmail').textContent = email;
+    const emailElement = document.getElementById('userEmail');
+    if (emailElement) {
+        emailElement.textContent = email;
+    } else {
+        console.error('E-posta adresini yerleştirecek HTML öğesi bulunamadı.');
+    }
 
     try {
         // Kullanıcı bilgilerini almak için API çağrısı yap
@@ -39,31 +44,32 @@ async function updateUserInfo() {
     const email = localStorage.getItem('userEmail');
     const address = document.getElementById('userAddress').value;
     const phone = document.getElementById('userPhone').value;
-    const newPassword = document.getElementById('newPassword').value;
 
     try {
-        const response = await fetch('https://veridepolama.onrender.com/update_user_info', {
+        const response = await fetch('https://veridepolama.onrender.com/update_user', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, address, phone, newPassword })
+            body: JSON.stringify({
+                email,
+                address,
+                phone
+            }),
         });
 
         const result = await response.json();
         if (result.success) {
             alert('Bilgiler başarıyla güncellendi!');
         } else {
-            alert('Bilgiler güncellenirken bir hata oluştu: ' + result.message);
+            console.error(result.message);
+            alert('Bilgiler güncellenirken bir hata oluştu.');
         }
     } catch (error) {
         console.error('Bilgiler güncellenirken bir hata oluştu:', error);
-        alert('Bilgiler güncellenirken bir hata oluştu!');
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchUserInfo();
-
-    document.getElementById('updateButton').addEventListener('click', updateUserInfo);
-});
+document.addEventListener('DOMContentLoaded', fetchUserInfo);
+document.getElementById('updateButton').addEventListener('click', updateUserInfo);
