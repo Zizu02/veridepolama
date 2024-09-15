@@ -130,19 +130,19 @@ app.put('/update_account', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     try {
-        let hashedPassword = null;
+        let query;
+        let values;
 
         if (password) {
-            hashedPassword = await bcrypt.hash(password, 10);
+            // Şifre güncellenmek isteniyorsa hash'le ve tüm alanları güncelle
+            const hashedPassword = await bcrypt.hash(password, 10);
+            query = 'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5';
+            values = [email, hashedPassword, address, phone, userId];
+        } else {
+            // Şifre güncellenmiyorsa şifreyi güncellemeyen bir sorgu kullan
+            query = 'UPDATE "user" SET email = $1, address = $2, phone = $3 WHERE id = $4';
+            values = [email, address, phone, userId];
         }
-
-        const query = hashedPassword
-            ? 'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5'
-            : 'UPDATE "user" SET email = $1, address = $3, phone = $4 WHERE id = $5';
-
-        const values = hashedPassword
-            ? [email, hashedPassword, address, phone, userId]
-            : [email, address, phone, userId];
 
         await pool.query(query, values);
 
