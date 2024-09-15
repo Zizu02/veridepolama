@@ -32,11 +32,11 @@ function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (token == null) return res.sendStatus(401);
+    if (token == null) return res.sendStatus(401);  // Token yoksa yetkisiz
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
-        req.user = user;  // Kullanıcının bilgilerini isteğe ekle
+        if (err) return res.sendStatus(403);  // Token doğrulanamazsa yasaklı
+        req.user = user;  // Kullanıcı bilgilerini isteğe ekle
         next();
     });
 }
@@ -52,7 +52,6 @@ app.post('/create_account', async (req, res) => {
         const userExists = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
 
         if (userExists.rows.length > 0) {
-            // Aynı e-posta ile hesap varsa hata döndür
             return res.status(400).json({ success: false, message: 'Bu e-posta adresi zaten kayıtlı!' });
         }
 
@@ -74,7 +73,6 @@ app.post('/create_account', async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
-
 
 // Giriş işlemi sırasında şifre doğrulama
 app.post('/login', async (req, res) => {
@@ -109,7 +107,6 @@ app.post('/login', async (req, res) => {
     }
 });
 
-
 // Kullanıcı bilgilerini getirme (kimlik doğrulama gerekli)
 app.get('/user_info', authenticateToken, async (req, res) => {
     const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınır
@@ -133,9 +130,10 @@ app.put('/update_account', authenticateToken, async (req, res) => {
     const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınır
 
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);  // Şifreyi tekrar hash'le
         await pool.query(
             'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5',
-            [email, password, address, phone, userId]
+            [email, hashedPassword, address, phone, userId]
         );
         res.json({ success: true, message: 'Bilgiler başarıyla güncellendi!' });
     } catch (err) {
@@ -147,3 +145,4 @@ app.put('/update_account', authenticateToken, async (req, res) => {
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
 });
+
