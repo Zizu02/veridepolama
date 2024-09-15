@@ -1,3 +1,4 @@
+// public/scripts.js
 document.addEventListener('DOMContentLoaded', () => {
     const emailElement = document.getElementById('user-email');
     const addressElement = document.getElementById('user-address');
@@ -5,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordElement = document.getElementById('user-password');
     const updateButton = document.getElementById('update-button');
 
+    // Kullanıcı bilgilerini alma fonksiyonu
     async function fetchUserInfo() {
         try {
             const response = await fetch('https://veridepolama.onrender.com/user_info', {
@@ -22,10 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.success) {
-                emailElement.textContent = data.user.email || 'E-posta yükleniyor...';
+                emailElement.textContent = data.user.email || 'Bilgi yüklenemedi';
                 addressElement.value = data.user.address || '';
                 phoneElement.value = data.user.phone || '';
-                passwordElement.value = ''; // Şifre alanı başlangıçta boş olabilir
+                passwordElement.value = ''; // Şifre alanı boş olabilir
             } else {
                 console.error('Kullanıcı bilgileri alınamadı:', data.message);
                 emailElement.textContent = 'Hata: Bilgi alınamadı';
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Kullanıcı bilgilerini güncelleme fonksiyonu
     async function updateUserInfo() {
         try {
             const response = await fetch('https://veridepolama.onrender.com/update_user_info', {
@@ -59,21 +62,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.success) {
-                console.log('Kullanıcı bilgileri başarıyla güncellendi!');
-                alert('Bilgileriniz başarıyla güncellendi!');
+                alert('Bilgiler başarıyla güncellendi');
             } else {
                 console.error('Bilgiler güncellenemedi:', data.message);
-                alert('Bilgiler güncellenemedi: ' + data.message);
             }
         } catch (error) {
             console.error('Bir hata oluştu:', error);
-            alert('Bir hata oluştu: ' + error.message);
         }
     }
 
-    // Fetch user info when the page loads
+    // Sayfa yüklendiğinde kullanıcı bilgilerini al
     fetchUserInfo();
 
-    // Update user info when the update button is clicked
+    // Güncelleme butonuna tıklandığında kullanıcı bilgilerini güncelle
     updateButton.addEventListener('click', updateUserInfo);
 });
