@@ -127,20 +127,32 @@ app.get('/user_info', authenticateToken, async (req, res) => {
 // Kullanıcı bilgilerini güncelleme (kimlik doğrulama gerekli)
 app.put('/update_account', authenticateToken, async (req, res) => {
     const { email, password, address, phone } = req.body;
-    const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınır
+    const userId = req.user.userId;
 
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);  // Şifreyi tekrar hash'le
-        await pool.query(
-            'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5',
-            [email, hashedPassword, address, phone, userId]
-        );
+        let hashedPassword = null;
+
+        if (password) {
+            hashedPassword = await bcrypt.hash(password, 10);
+        }
+
+        const query = hashedPassword
+            ? 'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5'
+            : 'UPDATE "user" SET email = $1, address = $3, phone = $4 WHERE id = $5';
+
+        const values = hashedPassword
+            ? [email, hashedPassword, address, phone, userId]
+            : [email, address, phone, userId];
+
+        await pool.query(query, values);
+
         res.json({ success: true, message: 'Bilgiler başarıyla güncellendi!' });
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
