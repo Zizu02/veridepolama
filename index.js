@@ -46,13 +46,23 @@ app.post('/create_account', async (req, res) => {
     const { email, password, address, phone } = req.body;
 
     try {
-        await pool.query(
+        console.log('Hesap oluşturma denemesi:', email);  // Kullanıcının e-postasını loglayın
+
+        // Şifreyi hash'leme
+        const hashedPassword = await bcrypt.hash(password, 10);  // Şifreyi hash'le ve logla
+        console.log('Hashlenmiş şifre:', hashedPassword);
+
+        // Veritabanına ekle
+        const result = await pool.query(
             'INSERT INTO "user" (email, password_hash, address, phone) VALUES ($1, $2, $3, $4)',
-            [email, password, address, phone]
+            [email, hashedPassword, address, phone]
         );
+
+        console.log('Kullanıcı başarıyla oluşturuldu:', result);
         res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
+
     } catch (err) {
-        console.error('Sunucu hatası:', err);
+        console.error('Sunucu hatası:', err);  // Hatanın tam olarak ne olduğunu logla
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
