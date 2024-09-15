@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // JWT için jsonwebtoken kütüphanesi
 require('dotenv').config();
 
@@ -56,20 +57,23 @@ app.post('/create_account', async (req, res) => {
     }
 });
 
-// Giriş işlemi
+// Giriş işlemi sırasında şifre doğrulama
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const result = await pool.query(
-            'SELECT * FROM "user" WHERE email = $1 AND password_hash = $2',
-            [email, password]
-        );
+        const result = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            const token = generateToken(user.id);  // Token oluştur
-            res.json({ success: true, token, message: 'Giriş başarılı!' });
+            const passwordMatch = await bcrypt.compare(password, user.password_hash);  // Şifre karşılaştırma
+
+            if (passwordMatch) {
+                const token = generateToken(user.id);
+                res.json({ success: true, token, message: 'Giriş başarılı!' });
+            } else {
+                res.status(401).json({ success: false, message: 'Geçersiz e-posta veya şifre!' });
+            }
         } else {
             res.status(401).json({ success: false, message: 'Geçersiz e-posta veya şifre!' });
         }
