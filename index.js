@@ -46,13 +46,21 @@ app.post('/create_account', async (req, res) => {
     const { email, password, address, phone } = req.body;
 
     try {
-        console.log('Hesap oluşturma denemesi:', email);  // Kullanıcının e-postasını loglayın
+        console.log('Hesap oluşturma denemesi:', email);
+
+        // Kullanıcı olup olmadığını kontrol et
+        const userExists = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
+
+        if (userExists.rows.length > 0) {
+            // Aynı e-posta ile hesap varsa hata döndür
+            return res.status(400).json({ success: false, message: 'Bu e-posta adresi zaten kayıtlı!' });
+        }
 
         // Şifreyi hash'leme
-        const hashedPassword = await bcrypt.hash(password, 10);  // Şifreyi hash'le ve logla
+        const hashedPassword = await bcrypt.hash(password, 10);
         console.log('Hashlenmiş şifre:', hashedPassword);
 
-        // Veritabanına ekle
+        // Kullanıcıyı veritabanına ekle
         const result = await pool.query(
             'INSERT INTO "user" (email, password_hash, address, phone) VALUES ($1, $2, $3, $4)',
             [email, hashedPassword, address, phone]
@@ -62,10 +70,11 @@ app.post('/create_account', async (req, res) => {
         res.json({ success: true, message: 'Hesap başarıyla oluşturuldu!' });
 
     } catch (err) {
-        console.error('Sunucu hatası:', err);  // Hatanın tam olarak ne olduğunu logla
+        console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Giriş işlemi sırasında şifre doğrulama
 app.post('/login', async (req, res) => {
