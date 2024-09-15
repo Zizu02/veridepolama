@@ -6,11 +6,17 @@ async function fetchUserInfo() {
     const errorMessageElement = document.getElementById('errorMessage');
 
     try {
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            errorMessageElement.textContent = 'Kullanıcı giriş yapmamış. Token bulunamadı.';
+            return;
+        }
+
         const response = await fetch('https://veridepolama.onrender.com/user_info', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                'Authorization': `Bearer ${authToken}`
             }
         });
 
@@ -25,13 +31,14 @@ async function fetchUserInfo() {
             addressElement.value = data.user.address || '';
             phoneElement.value = data.user.phone || '';
         } else {
-            errorMessageElement.textContent = 'Kullanıcı bilgileri alınamadı';
+            errorMessageElement.textContent = 'Kullanıcı bilgileri alınamadı: ' + data.message;
         }
     } catch (error) {
         console.error('Bir hata oluştu:', error);
         errorMessageElement.textContent = 'Bir hata oluştu: ' + error.message;
     }
 }
+
 
 async function updateUserInfo() {
     const emailElement = document.getElementById('userEmail');
