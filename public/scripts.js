@@ -1,48 +1,53 @@
 async function fetchUserInfo() {
-    // localStorage'dan e-posta adresini al
     const email = localStorage.getItem('userEmail');
     
-    // Eğer e-posta adresi yoksa, kullanıcıyı giriş sayfasına yönlendir
     if (!email) {
         console.error('E-posta adresi bulunamadı. Kullanıcı giriş yapmamış olabilir.');
         window.location.href = '/login.html'; // Kullanıcı giriş yapmamışsa yönlendirme
         return;
     }
 
-    // E-posta adresini sayfada göstermek için
     const emailElement = document.getElementById('userEmail');
     if (emailElement) {
-        emailElement.textContent = email;
+        emailElement.textContent = 'Yükleniyor...'; // Veriler yüklenene kadar "Yükleniyor..." yaz
     } else {
         console.error('E-posta adresini yerleştirecek HTML öğesi bulunamadı.');
     }
 
     try {
-        // Kullanıcı bilgilerini almak için API çağrısı yap
         const response = await fetch(`https://veridepolama.onrender.com/user_info?email=${encodeURIComponent(email)}`);
         if (!response.ok) {
-            throw new Error('Ağ yanıtı düzgün değil');
+            throw new Error('Ağ yanıtı düzgün değil: ' + response.status);
         }
 
         const result = await response.json();
         if (result.success) {
-            // Bilgileri HTML elementlerine ekle
+            if (emailElement) {
+                emailElement.textContent = email; // Başarıyla alındıysa e-posta adresini güncelle
+            }
             document.getElementById('userAddress').value = result.data.address || '';
             document.getElementById('userPhone').value = result.data.phone || '';
         } else {
             console.error('Bilgiler alınırken bir hata oluştu:', result.message);
+            if (emailElement) {
+                emailElement.textContent = 'E-posta bilgisi alınamadı'; // Bilgi alınamadıysa gösterilecek mesaj
+            }
         }
     } catch (error) {
         console.error('Hata:', error);
-        document.getElementById('errorMessage').textContent = 'Bilgiler alınırken bir hata oluştu.';
+        if (emailElement) {
+            emailElement.textContent = 'E-posta bilgisi alınamadı'; // Hata durumunda gösterilecek mesaj
+        }
     }
 }
 
-async function updateUserInfo() {
+document.addEventListener('DOMContentLoaded', fetchUserInfo);
+
+document.getElementById('updateButton').addEventListener('click', async () => {
     const email = localStorage.getItem('userEmail');
     const address = document.getElementById('userAddress').value;
     const phone = document.getElementById('userPhone').value;
-    const newPassword = document.getElementById('newPassword').value;
+    const password = document.getElementById('userPassword').value;
 
     try {
         const response = await fetch('https://veridepolama.onrender.com/update_user', {
@@ -50,26 +55,16 @@ async function updateUserInfo() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                email,
-                address,
-                phone,
-                newPassword
-            }),
+            body: JSON.stringify({ email, address, phone, password }),
         });
-
+        
         const result = await response.json();
         if (result.success) {
-            alert('Bilgiler başarıyla güncellendi!');
+            console.log('Bilgiler başarıyla güncellendi!');
         } else {
-            console.error('Güncellenirken bir hata oluştu:', result.message);
-            document.getElementById('errorMessage').textContent = 'Bilgiler güncellenirken bir hata oluştu.';
+            console.error('Bilgiler güncellenirken bir hata oluştu:', result.message);
         }
     } catch (error) {
         console.error('Hata:', error);
-        document.getElementById('errorMessage').textContent = 'Bilgiler güncellenirken bir hata oluştu.';
     }
-}
-
-// Sayfa yüklendiğinde kullanıcı bilgilerini getir
-window.addEventListener('load', fetchUserInfo);
+});
