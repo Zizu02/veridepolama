@@ -1,70 +1,81 @@
-async function fetchUserInfo() {
-    const email = localStorage.getItem('userEmail');
-    
-    if (!email) {
-        console.error('E-posta adresi bulunamadı. Kullanıcı giriş yapmamış olabilir.');
-        window.location.href = '/login.html'; // Kullanıcı giriş yapmamışsa yönlendirme
-        return;
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const emailElement = document.getElementById('user-email');
+    const addressElement = document.getElementById('user-address');
+    const phoneElement = document.getElementById('user-phone');
+    const passwordElement = document.getElementById('user-password');
+    const updateButton = document.getElementById('update-button');
 
-    const emailElement = document.getElementById('userEmail');
-    if (emailElement) {
-        emailElement.textContent = 'Yükleniyor...'; // Veriler yüklenene kadar "Yükleniyor..." yaz
-    } else {
-        console.error('E-posta adresini yerleştirecek HTML öğesi bulunamadı.');
-    }
+    async function fetchUserInfo() {
+        try {
+            const response = await fetch('https://veridepolama.onrender.com/user_info', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
 
-    try {
-        const response = await fetch(`https://veridepolama.onrender.com/user_info?email=${encodeURIComponent(email)}`);
-        if (!response.ok) {
-            throw new Error('Ağ yanıtı düzgün değil: ' + response.status);
-        }
-
-        const result = await response.json();
-        if (result.success) {
-            if (emailElement) {
-                emailElement.textContent = email; // Başarıyla alındıysa e-posta adresini güncelle
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            document.getElementById('userAddress').value = result.data.address || '';
-            document.getElementById('userPhone').value = result.data.phone || '';
-        } else {
-            console.error('Bilgiler alınırken bir hata oluştu:', result.message);
-            if (emailElement) {
-                emailElement.textContent = 'E-posta bilgisi alınamadı'; // Bilgi alınamadıysa gösterilecek mesaj
+
+            const data = await response.json();
+
+            if (data.success) {
+                emailElement.textContent = data.user.email || 'Yükleniyor...';
+                addressElement.value = data.user.address || '';
+                phoneElement.value = data.user.phone || '';
+                passwordElement.value = ''; // Şifre alanı başlangıçta boş olabilir
+            } else {
+                console.error('Kullanıcı bilgileri alınamadı:', data.message);
+                emailElement.textContent = 'Hata: Bilgi alınamadı';
             }
-        }
-    } catch (error) {
-        console.error('Hata:', error);
-        if (emailElement) {
-            emailElement.textContent = 'E-posta bilgisi alınamadı'; // Hata durumunda gösterilecek mesaj
+        } catch (error) {
+            console.error('Bir hata oluştu:', error);
+            emailElement.textContent = 'Hata: Bilgi alınamadı';
         }
     }
-}
 
-document.addEventListener('DOMContentLoaded', fetchUserInfo);
+    async function updateUserInfo() {
+        try {
+            const response = await fetch('https://veridepolama.onrender.com/update_user_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    email: emailElement.textContent,
+                    address: addressElement.value,
+                    phone: phoneElement.value,
+                    password: passwordElement.value
+                })
+            });
 
-document.getElementById('updateButton').addEventListener('click', async () => {
-    const email = localStorage.getItem('userEmail');
-    const address = document.getElementById('userAddress').value;
-    const phone = document.getElementById('userPhone').value;
-    const password = document.getElementById('userPassword').value;
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
 
-    try {
-        const response = await fetch('https://veridepolama.onrender.com/update_user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, address, phone, password }),
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            console.log('Bilgiler başarıyla güncellendi!');
-        } else {
-            console.error('Bilgiler güncellenirken bir hata oluştu:', result.message);
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('Kullanıcı bilgileri başarıyla güncellendi!');
+                alert('Bilgiler başarıyla güncellendi!');
+            } else {
+                console.error('Güncelleme hatası:', data.message);
+                alert('Bilgiler güncellenirken bir hata oluştu.');
+            }
+        } catch (error) {
+            console.error('Bir hata oluştu:', error);
+            alert('Bilgiler güncellenirken bir hata oluştu.');
         }
-    } catch (error) {
-        console.error('Hata:', error);
     }
+
+    updateButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        updateUserInfo();
+    });
+
+    // Sayfa yüklendiğinde kullanıcı bilgilerini al
+    fetchUserInfo();
 });
