@@ -35,6 +35,7 @@ async function updateUserInfo() {
     const email = localStorage.getItem('userEmail');
     const address = document.getElementById('userAddress').value;
     const phone = document.getElementById('userPhone').value;
+    const newPassword = document.getElementById('newPassword').value;
 
     try {
         const response = await fetch('https://veridepolama.onrender.com/update_user_info', {
@@ -42,20 +43,23 @@ async function updateUserInfo() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email, address, phone })
+            body: JSON.stringify({ email, address, phone, newPassword })
         });
 
         const result = await response.json();
         if (result.success) {
             alert('Bilgiler başarıyla güncellendi!');
         } else {
-            alert('Bilgiler güncellenirken bir hata oluştu.');
+            alert('Bilgiler güncellenirken bir hata oluştu: ' + result.message);
         }
     } catch (error) {
         console.error('Bilgiler güncellenirken bir hata oluştu:', error);
-        alert('Bilgiler güncellenirken bir hata oluştu.');
+        alert('Bilgiler güncellenirken bir hata oluştu!');
     }
 }
 
-window.onload = fetchUserInfo;
-document.getElementById('updateButton').addEventListener('click', updateUserInfo);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchUserInfo();
+
+    document.getElementById('updateButton').addEventListener('click', updateUserInfo);
+});
