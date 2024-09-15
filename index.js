@@ -62,26 +62,34 @@ app.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        console.log('Giriş denemesi:', email);  // Loglama ekleyerek hangi e-posta ile giriş yapıldığını görebiliriz
         const result = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            const passwordMatch = await bcrypt.compare(password, user.password_hash);  // Şifre karşılaştırma
+            console.log('Kullanıcı bulundu:', user);  // Veritabanından dönen kullanıcıyı loglayın
+            
+            // Şifre doğrulama
+            const passwordMatch = await bcrypt.compare(password, user.password_hash);
+            console.log('Şifre doğru mu:', passwordMatch);  // Şifrenin doğru olup olmadığını loglayın
 
             if (passwordMatch) {
                 const token = generateToken(user.id);
                 res.json({ success: true, token, message: 'Giriş başarılı!' });
             } else {
+                console.log('Geçersiz şifre');
                 res.status(401).json({ success: false, message: 'Geçersiz e-posta veya şifre!' });
             }
         } else {
+            console.log('Kullanıcı bulunamadı');
             res.status(401).json({ success: false, message: 'Geçersiz e-posta veya şifre!' });
         }
     } catch (err) {
-        console.error('Sunucu hatası:', err);
+        console.error('Sunucu hatası:', err);  // Hatanın tam olarak ne olduğunu logla
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Kullanıcı bilgilerini getirme (kimlik doğrulama gerekli)
 app.get('/user_info', authenticateToken, async (req, res) => {
