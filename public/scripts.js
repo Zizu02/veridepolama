@@ -1,65 +1,41 @@
-// Giriş işlemi
-document.getElementById('loginForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
+// Kullanıcı bilgilerini almak ve ekrana yazdırmak için
+async function fetchUserInfo() {
+    // localStorage'dan e-posta adresini al
+    const email = localStorage.getItem('userEmail');
     
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const response = await fetch('https://veridepolama.onrender.com/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            localStorage.setItem('userEmail', email);
-            window.location.href = '/hesabim.html'; // Başarılı giriş sonrası yönlendirme
-        } else {
-            alert(result.message);
-        }
-    } catch (error) {
-        console.error('Giriş işlemi sırasında bir hata oluştu:', error);
-        alert('Giriş işlemi sırasında bir hata oluştu.');
-    }
-});
-
-// Hesap bilgilerini gösterme
-document.addEventListener('DOMContentLoaded', async function() {
-    const userEmail = localStorage.getItem('userEmail');
-
-    if (!userEmail) {
-        window.location.href = '/login.html'; // Eğer kullanıcı e-posta bilgisi yoksa giriş sayfasına yönlendir
+    // Eğer e-posta adresi yoksa, kullanıcıyı giriş sayfasına yönlendir
+    if (!email) {
+        window.location.href = '/login.html'; // veya uygun yönlendirme
         return;
     }
 
-    document.getElementById('userEmail').textContent = userEmail;
-
     try {
-        const response = await fetch('https://veridepolama.onrender.com/user_info', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userEmail}`
-            }
-        });
+        // Kullanıcı bilgilerini almak için API çağrısı yap
+        const response = await fetch(`https://veridepolama.onrender.com/user_info?email=${encodeURIComponent(email)}`);
+        if (!response.ok) {
+            throw new Error('Ağ yanıtı düzgün değil');
+        }
 
-        if (response.ok) {
-            const userData = await response.json();
-            // Hesap bilgilerini güncelle
-            document.getElementById('userAddress').textContent = userData.address || 'Adres bilgisi yok';
-            document.getElementById('userPhone').textContent = userData.phone || 'Telefon bilgisi yok';
+        const result = await response.json();
+        if (result.success) {
+            // Bilgileri HTML elementlerine ekle
+            document.getElementById('userEmail').textContent = result.data.email || 'Bilgi yok';
+            document.getElementById('userAddress').textContent = result.data.address || 'Bilgi yok';
+            document.getElementById('userPhone').textContent = result.data.phone || 'Bilgi yok';
         } else {
-            throw new Error('Kullanıcı bilgileri alınırken bir hata oluştu');
+            console.error(result.message);
+            document.getElementById('userEmail').textContent = 'Bilgi alınamadı';
+            document.getElementById('userAddress').textContent = 'Bilgi alınamadı';
+            document.getElementById('userPhone').textContent = 'Bilgi alınamadı';
         }
     } catch (error) {
-        console.error('Hesap bilgileri alınırken bir hata oluştu:', error);
-        document.getElementById('error').textContent = 'Bilgiler alınırken bir hata oluştu.';
+        console.error('Bilgiler alınırken bir hata oluştu:', error);
+        document.getElementById('userEmail').textContent = 'Bilgi alınamadı';
+        document.getElementById('userAddress').textContent = 'Bilgi alınamadı';
+        document.getElementById('userPhone').textContent = 'Bilgi alınamadı';
     }
-});
+}
 
+// Sayfa yüklendiğinde kullanıcı bilgilerini getir
+window.onload = fetchUserInfo;
 
