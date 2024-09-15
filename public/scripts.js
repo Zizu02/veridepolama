@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.success) {
-                emailElement.textContent = data.user.email || 'Yükleniyor...';
+                emailElement.textContent = data.user.email || 'E-posta yükleniyor...';
                 addressElement.value = data.user.address || '';
                 phoneElement.value = data.user.phone || '';
                 passwordElement.value = ''; // Şifre alanı başlangıçta boş olabilir
@@ -60,22 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.success) {
                 console.log('Kullanıcı bilgileri başarıyla güncellendi!');
-                alert('Bilgiler başarıyla güncellendi!');
+                alert('Bilgileriniz başarıyla güncellendi!');
             } else {
-                console.error('Güncelleme hatası:', data.message);
-                alert('Bilgiler güncellenirken bir hata oluştu.');
+                console.error('Bilgiler güncellenemedi:', data.message);
+                alert('Bilgiler güncellenemedi: ' + data.message);
             }
         } catch (error) {
             console.error('Bir hata oluştu:', error);
-            alert('Bilgiler güncellenirken bir hata oluştu.');
+            alert('Bir hata oluştu: ' + error.message);
         }
     }
 
-    updateButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        updateUserInfo();
-    });
-
-    // Sayfa yüklendiğinde kullanıcı bilgilerini al
+    // Fetch user info when the page loads
     fetchUserInfo();
+
+    // Update user info when the update button is clicked
+    updateButton.addEventListener('click', updateUserInfo);
 });
