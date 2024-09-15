@@ -92,6 +92,28 @@ app.put('/update_account', async (req, res) => {
     }
 });
 
+app.get('/user_info', async (req, res) => {
+    // Burada, örneğin, kullanıcı bilgilerini almak için bir e-posta ile sorgu yapabilirsiniz.
+    // Bu örnekte, sabit bir e-posta kullanılıyor. Gerçek uygulamada, kimlik doğrulama yapmalısınız.
+    const email = 'test@example.com'; // Kullanıcının e-postasını dinamik olarak almanız gerekebilir.
+    
+    try {
+        const result = await pool.query(
+            'SELECT * FROM "user" WHERE email = $1',
+            [email]
+        );
+        
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]); // İlk sonucu döndür
+        } else {
+            res.status(404).json({ message: 'Kullanıcı bulunamadı!' });
+        }
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
 
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
