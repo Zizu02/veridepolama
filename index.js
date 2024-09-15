@@ -57,6 +57,41 @@ app.post('/login', async (req, res) => {
     }
 });
 
+app.get('/account', async (req, res) => {
+    // Kimlik doğrulama kontrolü yapılmalı
+    // Kullanıcı kimlik doğrulama bilgileri kontrol edilmelidir
+
+    const userId = req.user.id; // Kimlik doğrulama bilgisiyle kullanıcının ID'si alınmalı
+
+    try {
+        const result = await pool.query('SELECT email, address, phone FROM "user" WHERE id = $1', [userId]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
+app.put('/update_account', async (req, res) => {
+    const { email, password, address, phone } = req.body;
+    
+    // Kimlik doğrulama kontrolü yapılmalı
+    // Kullanıcı kimlik doğrulama bilgileri kontrol edilmelidir
+
+    const userId = req.user.id; // Kimlik doğrulama bilgisiyle kullanıcının ID'si alınmalı
+
+    try {
+        await pool.query(
+            'UPDATE "user" SET email = $1, password_hash = $2, address = $3, phone = $4 WHERE id = $5',
+            [email, password, address, phone, userId]
+        );
+        res.json({ success: true, message: 'Bilgiler başarıyla güncellendi!' });
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
 
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
