@@ -29,14 +29,11 @@ async function fetchUserInfo() {
             document.getElementById('userAddress').value = result.data.address || '';
             document.getElementById('userPhone').value = result.data.phone || '';
         } else {
-            console.error(result.message);
-            document.getElementById('userAddress').value = '';
-            document.getElementById('userPhone').value = '';
+            console.error('Bilgiler alınırken bir hata oluştu:', result.message);
         }
     } catch (error) {
-        console.error('Bilgiler alınırken bir hata oluştu:', error);
-        document.getElementById('userAddress').value = '';
-        document.getElementById('userPhone').value = '';
+        console.error('Hata:', error);
+        document.getElementById('errorMessage').textContent = 'Bilgiler alınırken bir hata oluştu.';
     }
 }
 
@@ -44,32 +41,38 @@ async function updateUserInfo() {
     const email = localStorage.getItem('userEmail');
     const address = document.getElementById('userAddress').value;
     const phone = document.getElementById('userPhone').value;
+    const newPassword = document.getElementById('newPassword').value;
 
     try {
         const response = await fetch('https://veridepolama.onrender.com/update_user', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                email,
-                address,
-                phone
-            }),
+            body: JSON.stringify({ email, address, phone, newPassword })
         });
+        
+        if (!response.ok) {
+            throw new Error('Ağ yanıtı düzgün değil');
+        }
 
         const result = await response.json();
         if (result.success) {
-            alert('Bilgiler başarıyla güncellendi!');
+            document.getElementById('successMessage').textContent = 'Bilgiler başarıyla güncellendi!';
         } else {
-            console.error(result.message);
-            alert('Bilgiler güncellenirken bir hata oluştu.');
+            document.getElementById('errorMessage').textContent = 'Bilgiler güncellenirken bir hata oluştu.';
         }
     } catch (error) {
-        console.error('Bilgiler güncellenirken bir hata oluştu:', error);
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+        console.error('Hata:', error);
+        document.getElementById('errorMessage').textContent = 'Bilgiler güncellenirken bir hata oluştu.';
     }
 }
 
-document.addEventListener('DOMContentLoaded', fetchUserInfo);
-document.getElementById('updateButton').addEventListener('click', updateUserInfo);
+// Sayfa yüklendiğinde kullanıcı bilgilerini al
+window.onload = fetchUserInfo;
+
+// Form gönderildiğinde bilgileri güncelle
+document.getElementById('updateForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    updateUserInfo();
+});
