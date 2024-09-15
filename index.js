@@ -36,6 +36,28 @@ app.post('/create_account', async (req, res) => {
     }
 });
 
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Veritabanında e-posta ve şifreyi doğrula
+        const result = await pool.query(
+            'SELECT * FROM "user" WHERE email = $1 AND password_hash = $2',
+            [email, password]
+        );
+        
+        if (result.rows.length > 0) {
+            res.json({ success: true, message: 'Giriş başarılı!' });
+        } else {
+            res.status(401).json({ success: false, message: 'Geçersiz e-posta veya şifre!' });
+        }
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
+
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
 });
