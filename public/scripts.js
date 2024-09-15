@@ -4,6 +4,7 @@ async function fetchUserInfo() {
     
     // Eğer e-posta adresi yoksa, kullanıcıyı giriş sayfasına yönlendir
     if (!email) {
+        console.error('E-posta adresi bulunamadı. Kullanıcı giriş yapmamış olabilir.');
         window.location.href = '/login.html'; // Kullanıcı giriş yapmamışsa yönlendirme
         return;
     }
@@ -47,19 +48,21 @@ async function updateUserInfo() {
         const response = await fetch('https://veridepolama.onrender.com/update_user', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, address, phone, newPassword })
+            body: JSON.stringify({
+                email,
+                address,
+                phone,
+                newPassword
+            }),
         });
-        
-        if (!response.ok) {
-            throw new Error('Ağ yanıtı düzgün değil');
-        }
 
         const result = await response.json();
         if (result.success) {
-            document.getElementById('successMessage').textContent = 'Bilgiler başarıyla güncellendi!';
+            alert('Bilgiler başarıyla güncellendi!');
         } else {
+            console.error('Güncellenirken bir hata oluştu:', result.message);
             document.getElementById('errorMessage').textContent = 'Bilgiler güncellenirken bir hata oluştu.';
         }
     } catch (error) {
@@ -68,11 +71,5 @@ async function updateUserInfo() {
     }
 }
 
-// Sayfa yüklendiğinde kullanıcı bilgilerini al
-window.onload = fetchUserInfo;
-
-// Form gönderildiğinde bilgileri güncelle
-document.getElementById('updateForm').addEventListener('submit', (event) => {
-    event.preventDefault();
-    updateUserInfo();
-});
+// Sayfa yüklendiğinde kullanıcı bilgilerini getir
+window.addEventListener('load', fetchUserInfo);
