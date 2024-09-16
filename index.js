@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // JWT için jsonwebtoken kütüphanesi
 require('dotenv').config();
 
+const { sendPasswordResetEmail } = require('./src/services/emailService');
 const app = express();
 const pool = new Pool({
     user: process.env.DB_USER,
@@ -150,6 +151,26 @@ app.put('/update_account', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
+app.post('/reset_password', async (req, res) => {
+    const { email } = req.body;
+
+    // Veritabanında kullanıcının e-postasının olup olmadığını kontrol et
+    const user = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
+
+    if (user.rows.length > 0) {
+        const resetLink = `https://yourdomain.com/reset_password?token=abc123`; // Reset linkini oluşturun
+        try {
+            // Şifre sıfırlama e-postasını gönder
+            await sendPasswordResetEmail(email, resetLink);
+            res.json({ success: true, message: 'Şifre sıfırlama bağlantısı e-postanıza gönderildi!' });
+        } catch (error) {
+            res.status(500).json({ success: false, message: 'E-posta gönderilirken bir hata oluştu.' });
+        }
+    } else {
+        res.status(404).json({ success: false, message: 'E-posta adresi bulunamadı.' });
     }
 });
 
