@@ -3,7 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // JWT için jsonwebtoken kütüphanesi
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');  // Sadece bir kez tanımlayın
 require('dotenv').config();
 
 const { sendPasswordResetEmail } = require('./src/services/emailService');
@@ -18,8 +18,6 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
-
-const nodemailer = require('nodemailer');
 
 // Nodemailer Transporter yapılandırması
 const transporter = nodemailer.createTransport({
