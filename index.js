@@ -201,8 +201,10 @@ app.post('/send_reset_link', async (req, res) => {
         }
 
         // Şifre sıfırlama bağlantısını oluştur
-        const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const resetLink = `https://your-domain.com/reset_password?token=${resetToken}`;
+        const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Token 1 saat geçerli olacak
+
+        // Token'ı kullanarak kullanıcıya özel şifre sıfırlama bağlantısı oluştur
+        const resetLink = `https://sapphire-algae-9ajt.squarespace.com/yeni-ifre-gir?token=${resetToken}`;
 
         // E-posta gönder
         await transporter.sendMail({
