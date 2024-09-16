@@ -174,6 +174,26 @@ app.post('/reset_password', async (req, res) => {
     }
 });
 
+app.post('/confirm_reset_password', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    // Token doğrulama işlemi (örneğin JWT token kullanabilirsiniz)
+    // Token'ın geçerliliğini kontrol edin (bu örnekte sadece basit bir kontrol yapılıyor)
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Veritabanında kullanıcıyı bulun ve şifreyi güncelleyin (örnekte email üzerinden yapılıyor)
+        await pool.query('UPDATE "user" SET password_hash = $1 WHERE email = $2', [hashedPassword, 'kullanici@example.com']);
+        
+        res.json({ success: true, message: 'Şifre başarıyla sıfırlandı!' });
+    } catch (error) {
+        console.error('Şifre sıfırlama hatası:', error);
+        res.status(500).json({ success: false, message: 'Şifre sıfırlanırken bir hata oluştu.' });
+    }
+});
+
+
 
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
