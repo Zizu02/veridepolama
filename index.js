@@ -28,6 +28,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+console.log(process.env.EMAIL_USER);
+console.log(process.env.EMAIL_PASS);
 
 app.use(cors({
     origin: 'https://sapphire-algae-9ajt.squarespace.com' // veya '*' (tüm kaynaklara izin vermek için)
