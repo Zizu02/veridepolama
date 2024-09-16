@@ -174,20 +174,20 @@ app.post('/confirm_reset_password', async (req, res) => {
     try {
         // Token'ı doğrulayın
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const email = decoded.email;
 
-        // Yeni şifreyi hash'leyin
+        // Şifreyi hash'leyin
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Veritabanında şifreyi güncelleyin
-        await pool.query('UPDATE "user" SET password_hash = $1 WHERE email = $2', [hashedPassword, email]);
-        
-        res.json({ success: true, message: 'Şifre başarıyla sıfırlandı!' });
+        // Kullanıcının şifresini güncelleyin
+        await pool.query('UPDATE "user" SET password_hash = $1 WHERE email = $2', [hashedPassword, decoded.email]);
+
+        res.json({ success: true, message: 'Şifre başarıyla güncellendi!' });
     } catch (error) {
         console.error('Şifre sıfırlama hatası:', error);
         res.status(500).json({ success: false, message: 'Şifre sıfırlanırken bir hata oluştu.' });
     }
 });
+
 
 app.post('/send_reset_link', async (req, res) => {
     const { email } = req.body;
