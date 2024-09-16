@@ -3,6 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  // JWT için jsonwebtoken kütüphanesi
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const { sendPasswordResetEmail } = require('./src/services/emailService');
@@ -17,6 +18,18 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
+
+const nodemailer = require('nodemailer');
+
+// Nodemailer Transporter yapılandırması
+const transporter = nodemailer.createTransport({
+    service: 'Gmail', // Veya kullandığınız başka bir e-posta servisi
+    auth: {
+        user: process.env.EMAIL_USER, // Gönderici e-posta adresi (dotenv ile gizlenmiş)
+        pass: process.env.EMAIL_PASS // Gönderici e-posta şifresi (dotenv ile gizlenmiş)
+    }
+});
+
 
 app.use(cors({
     origin: 'https://sapphire-algae-9ajt.squarespace.com' // veya '*' (tüm kaynaklara izin vermek için)
@@ -154,37 +167,20 @@ app.put('/update_account', authenticateToken, async (req, res) => {
     }
 });
 
-app.post('/reset_password', async (req, res) => {
-    const { email } = req.body;
-
-    // Veritabanında kullanıcının e-postasının olup olmadığını kontrol et
-    const user = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
-
-    if (user.rows.length > 0) {
-        const resetLink = `https://yourdomain.com/reset_password?token=abc123`; // Reset linkini oluşturun
-        try {
-            // Şifre sıfırlama e-postasını gönder
-            await sendPasswordResetEmail(email, resetLink);
-            res.json({ success: true, message: 'Şifre sıfırlama bağlantısı e-postanıza gönderildi!' });
-        } catch (error) {
-            res.status(500).json({ success: false, message: 'E-posta gönderilirken bir hata oluştu.' });
-        }
-    } else {
-        res.status(404).json({ success: false, message: 'E-posta adresi bulunamadı.' });
-    }
-});
 
 app.post('/confirm_reset_password', async (req, res) => {
     const { token, newPassword } = req.body;
 
-    // Token doğrulama işlemi (örneğin JWT token kullanabilirsiniz)
-    // Token'ın geçerliliğini kontrol edin (bu örnekte sadece basit bir kontrol yapılıyor)
-
     try {
+        // Token'ı doğrulayın
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const email = decoded.email;
+
+        // Yeni şifreyi hash'leyin
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Veritabanında kullanıcıyı bulun ve şifreyi güncelleyin (örnekte email üzerinden yapılıyor)
-        await pool.query('UPDATE "user" SET password_hash = $1 WHERE email = $2', [hashedPassword, 'kullanici@example.com']);
+        // Veritabanında şifreyi güncelleyin
+        await pool.query('UPDATE "user" SET password_hash = $1 WHERE email = $2', [hashedPassword, email]);
         
         res.json({ success: true, message: 'Şifre başarıyla sıfırlandı!' });
     } catch (error) {
@@ -192,6 +188,38 @@ app.post('/confirm_reset_password', async (req, res) => {
         res.status(500).json({ success: false, message: 'Şifre sıfırlanırken bir hata oluştu.' });
     }
 });
+
+app.post('/send_reset_link', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Kullanıcı veritabanında var mı kontrol edin
+        const user = await pool.query('SELECT * FROM "user" WHERE email = $1', [email]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.' });
+        }
+
+        // Şifre sıfırlama bağlantısını oluştur
+        const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const resetLink = `https://your-domain.com/reset_password?token=${resetToken}`;
+
+        // E-posta gönder
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Şifre Sıfırlama Bağlantınız',
+            text: `Şifrenizi sıfırlamak için şu bağlantıya tıklayın: ${resetLink}`,
+            html: `<p>Şifrenizi sıfırlamak için <a href="${resetLink}">bu bağlantıya</a> tıklayın.</p>`
+        });
+
+        res.json({ success: true, message: 'Şifre sıfırlama bağlantısı gönderildi.' });
+    } catch (err) {
+        console.error('E-posta gönderim hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
+    }
+});
+
 
 
 
