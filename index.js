@@ -449,6 +449,34 @@ app.get('/all_orders', authenticateToken, async (req, res) => {
     }
 });
 
+// Sipariş statüsünü güncelleme ve fiyat kontrolü
+app.post('/validate_order', authenticateToken, async (req, res) => {
+    const { email, items, totalAmount } = req.body;
+    const userId = req.user.userId;
+
+    try {
+        // Sunucudan gerçek ürün fiyatlarını çek
+        const realPrices = {}; // Veritabanından gerçek ürün fiyatlarını çekeceksiniz
+        items.forEach(item => {
+            // Gerçek fiyatları karşılaştır
+            if (realPrices[item.name] && realPrices[item.name] * item.quantity !== item.price * item.quantity) {
+                // Fiyatlar uyuşmuyorsa siparişi iptal et
+                await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2', ['iptal', userId]);
+                return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor, sipariş iptal edildi!' });
+            }
+        });
+
+        // Eğer fiyatlar doğruysa siparişi onayla
+        await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2', ['onaylandı', userId]);
+        res.json({ success: true, message: 'Sipariş onaylandı!' });
+
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
+    }
+});
+
+
 app.listen(process.env.PORT || 10000, () => {
     console.log('Sunucu çalışıyor');
 });
