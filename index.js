@@ -395,10 +395,12 @@ app.post('/create_order', authenticateToken, async (req, res) => {
 });
 
 // Sipariş durumunu güncelleme (Sadece site sahibi)
+// Sipariş statüsünü güncelleyen endpoint
 app.put('/update_order_status', authenticateToken, async (req, res) => {
     const { orderId, status } = req.body;
 
     try {
+        // Sipariş durumunu güncelle
         const result = await pool.query(
             'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
             [status, orderId]
@@ -407,7 +409,7 @@ app.put('/update_order_status', authenticateToken, async (req, res) => {
         if (result.rows.length > 0) {
             res.json({
                 success: true,
-                message: 'Sipariş durumu güncellendi!',
+                message: 'Sipariş durumu başarıyla güncellendi!',
                 order: result.rows[0]
             });
         } else {
@@ -418,6 +420,7 @@ app.put('/update_order_status', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Kullanıcının kendi siparişlerini görüntüleme
 app.get('/my_orders', authenticateToken, async (req, res) => {
