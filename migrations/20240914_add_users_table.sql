@@ -1,7 +1,9 @@
 -- migrations/20240914_add_users_table.sql
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100),
-  email VARCHAR(100) UNIQUE
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    items TEXT,
+    total_amount DECIMAL(10, 2),
+    status VARCHAR(50) DEFAULT 'onay bekliyor',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
