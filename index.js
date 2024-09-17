@@ -82,6 +82,10 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
     ].join('');
     return Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
 }
+// Benzersiz merchant_oid oluşturma fonksiyonu
+function generateMerchantOid() {
+    return 'oid_' + new Date().getTime();  // Benzersiz bir sipariş numarası
+}
 
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
@@ -93,53 +97,47 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         const verifiedItems = [];
         let totalAmount = 0;
 
+        // Ürünlerin fiyatlarını kontrol et ve toplamı hesapla
         for (const item of items) {
-            // Ürün adı üzerinden sunucudan fiyatı alın
             const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
 
             if (product.rows.length > 0) {
                 const price = product.rows[0].price;
-                const itemTotal = price * item.quantity;
-                totalAmount += itemTotal;
-
-                verifiedItems.push({
-                    name: item.name,
-                    price: price,
-                    quantity: item.quantity,
-                    total: itemTotal
-                });
+                if (price !== item.price) {
+                    return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor.' });
+                }
+                // Toplam fiyatı hesapla
+                totalAmount += price * item.quantity;
             } else {
                 return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
             }
         }
+        
 
         // Toplam tutarı kuruş cinsine çevirin
         const paymentAmountInCents = parseFloat(totalAmount) * 100;
 
         // PayTR API'sine ödeme isteği gönder
-        const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                merchant_id: MERCHANT_ID,
-                user_ip: req.ip,
-                merchant_oid: generateMerchantOid(),
-                email: email,
-                payment_amount: paymentAmountInCents,
-                user_basket: verifiedItems,
-                debug_on: 1,
-                no_installment: 0,
-                max_installment: 12,
-                user_name: "John Doe",
-                user_address: address,
-                user_phone: phone,
-                merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-                merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-                timeout_limit: 30,
-                currency: "TL",
-                test_mode: 1
-            })
-        });
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
+           merchant_id: PAYTR_MERCHANT_ID,
+           user_ip: req.ip,
+           merchant_oid: generateMerchantOid(),
+           email: email,
+           payment_amount: paymentAmountInCents,
+           user_basket: verifiedItems,
+           debug_on: 1,
+           no_installment: 0,
+           max_installment: 12,
+           user_name: "John Doe",
+           user_address: address,
+           user_phone: phone,
+           merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+           merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+           timeout_limit: 30,
+           currency: "TL",
+           test_mode: 1
+       });
+
 
         const result = await response.json();
 
@@ -457,17 +455,17 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
     try {
         // Sunucudan gerçek ürün fiyatlarını çek
         const realPrices = {}; // Veritabanından gerçek ürün fiyatlarını çekeceksiniz
-        items.forEach(item => {
+        for (const item of items) {
             // Gerçek fiyatları karşılaştır
             if (realPrices[item.name] && realPrices[item.name] * item.quantity !== item.price * item.quantity) {
                 // Fiyatlar uyuşmuyorsa siparişi iptal et
-                await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2', ['iptal', userId]);
+                await pool.query('UPDATE orders SET status = $1 WHERE id = $2', ['iptal', orderId]);  // Burada orderId sipariş numarasını temsil etmeli
                 return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor, sipariş iptal edildi!' });
             }
-        });
+        }
 
         // Eğer fiyatlar doğruysa siparişi onayla
-        await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2', ['onaylandı', userId]);
+        await pool.query('UPDATE orders SET status = $1 WHERE id = $2', ['onaylandı', orderId]);
         res.json({ success: true, message: 'Sipariş onaylandı!' });
 
     } catch (err) {
@@ -475,6 +473,7 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
     }
 });
+
 
 
 app.listen(process.env.PORT || 10000, () => {
