@@ -85,73 +85,62 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
-    const { email, payment_amount, user_name, user_address, user_phone } = req.body;
-
-    const user_ip = req.ip;
-    const merchant_oid = 'OID' + new Date().getTime(); // Benzersiz işlem kimliği
-
-    const user_basket = Base64.stringify(
-        Buffer.from(
-            JSON.stringify([
-                ["Sepet Ürünü", payment_amount, 1]
-            ])
-        )
-    );
-
-    const paytr_token = createPaytrToken(
-        user_ip,
-        merchant_oid,
-        email,
-        payment_amount,
-        user_basket,
-        '0', // taksit yapılmıyor
-        '12', // max taksit sayısı
-        'TL', // Para birimi
-        '1'  // Test modu açık (canlıda 0 yapmalısınız)
-    );
-
-    const paytrParams = {
-        merchant_id: PAYTR_MERCHANT_ID,
-        user_ip,
-        merchant_oid,
-        email,
-        payment_amount,
-        paytr_token,
-        user_basket,
-        debug_on: '1',
-        no_installment: '0',
-        max_installment: '12',
-        user_name,
-        user_address,
-        user_phone,
-        merchant_ok_url: 'https://sapphire-algae-9ajt.squarespace.com/cart',
-        merchant_fail_url: 'https://sapphire-algae-9ajt.squarespace.com/cart',
-        timeout_limit: '30',
-        currency: 'TL',
-        test_mode: '1'
-    };
+    const { items } = req.body; // İstemciden gelen sepetteki ürünler
+    const userId = req.user.userId; // Token'dan kullanıcı ID'sini alıyoruz
 
     try {
-        const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams(paytrParams).toString()
+        // Sunucuda toplam fiyatı hesaplayın
+        let totalAmount = 0;
+        items.forEach(item => {
+            totalAmount += item.price * item.quantity;
         });
 
-        const result = await response.json();
+        // PayTR için merchant_oid oluştur
+        const merchantOid = generateMerchantOid();
 
-        if (result.status === 'success') {
-            return res.json({ success: true, token: result.token });
+        // Sepetteki ürünleri JSON formatında base64 olarak kodlayın
+        const userBasket = base64.b64encode(JSON.stringify(items));
+
+        // PayTR için token oluştur
+        const paytrToken = createPaytrToken(
+            MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT,
+            req.ip, merchantOid, req.user.email, totalAmount,
+            userBasket, '0', '12', 'TL', '0'
+        );
+
+        // PayTR API'sine isteği yapın
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
+            merchant_id: MERCHANT_ID,
+            user_ip: req.ip,
+            merchant_oid: merchantOid,
+            email: req.user.email,
+            payment_amount: totalAmount * 100,  // Kuruş formatında gönderiyoruz
+            paytr_token: paytrToken,
+            user_basket: userBasket,
+            no_installment: '0',
+            max_installment: '12',
+            user_name: req.user.user_name,
+            user_address: req.user.address,
+            user_phone: req.user.phone,
+            merchant_ok_url: 'https://yourdomain.com/payment-success',
+            merchant_fail_url: 'https://yourdomain.com/payment-failure',
+            timeout_limit: '30',
+            currency: 'TL'
+        });
+
+        // Başarılı ise token döndürün
+        if (response.data.status === 'success') {
+            res.json({ success: true, token: response.data.token });
         } else {
-            return res.json({ success: false, message: result.reason });
+            res.status(400).json({ success: false, message: response.data.err_msg });
         }
+
     } catch (error) {
-        console.error('PayTR hata:', error);
-        return res.status(500).json({ success: false, message: 'PayTR ödeme isteğinde bir hata oluştu.' });
+        console.error('Sunucu hatası:', error);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
 app.post('/paytr_callback', (req, res) => {
