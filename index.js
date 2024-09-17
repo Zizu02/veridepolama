@@ -85,61 +85,75 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
-    const { items } = req.body; // İstemciden gelen sepetteki ürünler
-    const userId = req.user.userId; // Token'dan kullanıcı ID'sini alıyoruz
+    const { email, address, phone, items } = req.body;
+    const userId = req.user.userId;
 
     try {
-        // Sunucuda toplam fiyatı hesaplayın
+        // Sunucu tarafında ürünlerin fiyatlarını alın
+        const verifiedItems = [];
         let totalAmount = 0;
-        items.forEach(item => {
-            totalAmount += item.price * item.quantity;
-        });
 
-        // PayTR için merchant_oid oluştur
-        const merchantOid = generateMerchantOid();
+        for (const item of items) {
+            // Ürün adı üzerinden sunucudan fiyatı alın
+            const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
 
-        // Sepetteki ürünleri JSON formatında base64 olarak kodlayın
-        const userBasket = base64.b64encode(JSON.stringify(items));
+            if (product.rows.length > 0) {
+                const price = product.rows[0].price;
+                const itemTotal = price * item.quantity;
+                totalAmount += itemTotal;
 
-        // PayTR için token oluştur
-        const paytrToken = createPaytrToken(
-            MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT,
-            req.ip, merchantOid, req.user.email, totalAmount,
-            userBasket, '0', '12', 'TL', '0'
-        );
-
-        // PayTR API'sine isteği yapın
-        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: MERCHANT_ID,
-            user_ip: req.ip,
-            merchant_oid: merchantOid,
-            email: req.user.email,
-            payment_amount: totalAmount * 100,  // Kuruş formatında gönderiyoruz
-            paytr_token: paytrToken,
-            user_basket: userBasket,
-            no_installment: '0',
-            max_installment: '12',
-            user_name: req.user.user_name,
-            user_address: req.user.address,
-            user_phone: req.user.phone,
-            merchant_ok_url: 'https://yourdomain.com/payment-success',
-            merchant_fail_url: 'https://yourdomain.com/payment-failure',
-            timeout_limit: '30',
-            currency: 'TL'
-        });
-
-        // Başarılı ise token döndürün
-        if (response.data.status === 'success') {
-            res.json({ success: true, token: response.data.token });
-        } else {
-            res.status(400).json({ success: false, message: response.data.err_msg });
+                verifiedItems.push({
+                    name: item.name,
+                    price: price,
+                    quantity: item.quantity,
+                    total: itemTotal
+                });
+            } else {
+                return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
+            }
         }
 
+        // Toplam tutarı kuruş cinsine çevirin
+        const paymentAmountInCents = parseFloat(totalAmount) * 100;
+
+        // PayTR API'sine ödeme isteği gönder
+        const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                merchant_id: MERCHANT_ID,
+                user_ip: req.ip,
+                merchant_oid: generateMerchantOid(),
+                email: email,
+                payment_amount: paymentAmountInCents,
+                user_basket: verifiedItems,
+                debug_on: 1,
+                no_installment: 0,
+                max_installment: 12,
+                user_name: "John Doe",
+                user_address: address,
+                user_phone: phone,
+                merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+                merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+                timeout_limit: 30,
+                currency: "TL",
+                test_mode: 1
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            res.json({ success: true, token: result.token });
+        } else {
+            res.json({ success: false, message: result.err_msg });
+        }
     } catch (error) {
         console.error('Sunucu hatası:', error);
-        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
     }
 });
+
 
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
