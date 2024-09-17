@@ -372,15 +372,17 @@ app.post('/confirm_reset_password', async (req, res) => {
     }
 });
 
-// Yeni sipariş ekleme
+// Yeni sipariş oluşturma
 app.post('/create_order', authenticateToken, async (req, res) => {
     const { items, totalAmount } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınıyor
 
     try {
+        // Her sipariş ayrı olarak kaydediliyor
         const result = await pool.query(
-            'INSERT INTO orders (user_id, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
-            [userId, items, totalAmount]
+            `INSERT INTO orders (user_id, items, total_amount, status, created_at)
+             VALUES ($1, $2, $3, 'onay bekliyor', CURRENT_TIMESTAMP) RETURNING *`,
+            [userId, JSON.stringify(items), totalAmount]
         );
 
         res.json({
@@ -393,6 +395,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Sipariş durumunu güncelleme (Sadece site sahibi)
 // Sipariş statüsünü güncelleyen endpoint
@@ -422,18 +425,25 @@ app.put('/update_order_status', authenticateToken, async (req, res) => {
 });
 
 
-// Kullanıcının kendi siparişlerini görüntüleme
+// Kullanıcının tüm siparişlerini çekme
 app.get('/my_orders', authenticateToken, async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınıyor
 
     try {
-        const result = await pool.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+        const result = await pool.query(
+            `SELECT id, items, total_amount, status, created_at 
+             FROM orders 
+             WHERE user_id = $1 
+             ORDER BY created_at DESC`,
+            [userId]
+        );
         res.json({ success: true, orders: result.rows });
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 // Site sahibinin tüm siparişleri görmesi
 app.get('/all_orders', authenticateToken, async (req, res) => {
