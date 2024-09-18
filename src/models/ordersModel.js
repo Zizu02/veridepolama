@@ -1,4 +1,4 @@
-const db = require('../config/database'); // Veritabanı bağlantısı
+const db = require('../../config/database');
 
 const OrdersModel = {
     createOrder: async (userId, items, totalAmount) => {
