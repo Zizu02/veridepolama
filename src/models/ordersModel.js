@@ -1,4 +1,4 @@
-const pool = require('../db');
+const db = require('../config/database'); // Veritabanı bağlantısı
 
 const OrdersModel = {
     createOrder: async (userId, items, totalAmount) => {
