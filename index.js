@@ -9,7 +9,7 @@ const Base64 = require('crypto-js/enc-base64');
 const axios = require('axios'); // HTTP istekleri için axios'u kullanacağız
 require('dotenv').config();
 
-const { getProductByName } = require('./models/productsModel');
+const productsModel = require('./src/models/productsModel');
 const OrdersModel = require('./models/ordersModel');
 
 const { sendPasswordResetEmail } = require('./src/services/emailService');
