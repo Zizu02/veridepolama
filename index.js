@@ -388,8 +388,8 @@ app.post('/create_order', authenticateToken, async (req, res) => {
             const product = await productsModel.getProductByName(item.name);
 
             if (product) {
-                const priceInCents = parseInt(product.price * 100); // Veritabanındaki fiyatı kuruş formatına çevir
-                const itemPriceInCents = parseInt(item.price * 100); // Gelen fiyatı da kuruş formatına çevir
+                const priceInCents = Math.round(parseFloat(product.price) * 100);
+                const itemPriceInCents = Math.round(parseFloat(item.price) * 100);
 
                 // Her ürünün miktarına göre toplam fiyatı hesapla
                 verifiedTotal += priceInCents * item.quantity;
