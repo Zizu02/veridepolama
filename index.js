@@ -385,16 +385,17 @@ app.post('/create_order', authenticateToken, async (req, res) => {
 
         for (const item of items) {
             // Ürün adını veri tabanından kontrol et
-            const product = await productsModel.getProductByName(item.name); // Bu kısım
+            const product = await productsModel.getProductByName(item.name);
 
             if (product) {
-                const price = product.price;
-                
-                // Her ürünün miktarına göre toplam fiyatı hesapla
-                verifiedTotal += price * item.quantity;
+                const priceInCents = parseInt(product.price * 100); // Veritabanındaki fiyatı kuruş formatına çevir
+                const itemPriceInCents = parseInt(item.price * 100); // Gelen fiyatı da kuruş formatına çevir
 
-                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı karşılaştırmak için
-                if (price !== item.price) {
+                // Her ürünün miktarına göre toplam fiyatı hesapla
+                verifiedTotal += priceInCents * item.quantity;
+
+                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı kuruş formatında karşılaştır
+                if (priceInCents !== itemPriceInCents) {
                     return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name}` });
                 }
             } else {
@@ -403,14 +404,15 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         }
 
         // Toplam tutar eşleşiyor mu kontrol et
-        if (verifiedTotal !== totalAmount) {
+        const verifiedTotalInCents = parseInt(totalAmount * 100); // Toplam tutarı da kuruş cinsine çevir
+        if (verifiedTotal !== verifiedTotalInCents) {
             return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmazlığı' });
         }
 
         // Siparişi veritabanına kaydet
         const result = await pool.query(
             'INSERT INTO orders (user_id, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
-            [userId, JSON.stringify(items), verifiedTotal]
+            [userId, JSON.stringify(items), totalAmount]
         );
 
         res.json({ success: true, message: 'Sipariş başarıyla oluşturuldu!', order: result.rows[0] });
@@ -419,6 +421,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 
