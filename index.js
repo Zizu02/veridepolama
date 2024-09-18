@@ -374,27 +374,49 @@ app.post('/confirm_reset_password', async (req, res) => {
 
 // Yeni sipariş oluşturma
 app.post('/create_order', authenticateToken, async (req, res) => {
-    const { items, totalAmount } = req.body;
-    const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınıyor
+    const { items, totalAmount } = req.body; // Ürün adı ve miktarı burada alınır
+    const userId = req.user.userId;
 
     try {
-        // Her sipariş ayrı olarak kaydediliyor
+        let verifiedTotal = 0;
+
+        for (const item of items) {
+            // Ürün adını veri tabanından kontrol et
+            const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
+
+            if (product.rows.length > 0) {
+                const price = product.rows[0].price;
+                
+                // Her ürünün miktarına göre toplam fiyatı hesapla
+                verifiedTotal += price * item.quantity;
+
+                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı karşılaştır (gerekirse)
+                if (price !== item.price) {
+                    return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name}` });
+                }
+            } else {
+                return res.status(400).json({ success: false, message: `Ürün bulunamadı: ${item.name}` });
+            }
+        }
+
+        // Toplam tutar eşleşiyor mu kontrol et
+        if (verifiedTotal !== totalAmount) {
+            return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmazlığı' });
+        }
+
+        // Siparişi veritabanına kaydet
         const result = await pool.query(
-            `INSERT INTO orders (user_id, items, total_amount, status, created_at)
-             VALUES ($1, $2, $3, 'onay bekliyor', CURRENT_TIMESTAMP) RETURNING *`,
-            [userId, JSON.stringify(items), totalAmount]
+            'INSERT INTO orders (user_id, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
+            [userId, JSON.stringify(items), verifiedTotal]
         );
 
-        res.json({
-            success: true,
-            message: 'Sipariş başarıyla oluşturuldu!',
-            order: result.rows[0]
-        });
+        res.json({ success: true, message: 'Sipariş başarıyla oluşturuldu!', order: result.rows[0] });
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 // Sipariş durumunu güncelleme (Sadece site sahibi)
