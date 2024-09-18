@@ -10,7 +10,7 @@ const axios = require('axios'); // HTTP istekleri için axios'u kullanacağız
 require('dotenv').config();
 
 const productsModel = require('./src/models/productsModel');
-const OrdersModel = require('./models/ordersModel');
+const OrdersModel = require('./src/models/ordersModel');
 
 const { sendPasswordResetEmail } = require('./src/services/emailService');
 const app = express();
