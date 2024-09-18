@@ -1,4 +1,4 @@
-const pool = require('../db'); // Veritabanı bağlantısını çağırıyoruz
+const db = require('../config/database'); // Veritabanı bağlantısı
 
 const ProductsModel = {
     getAllProducts: async () => {
