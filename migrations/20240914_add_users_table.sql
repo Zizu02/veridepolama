@@ -7,3 +7,9 @@ CREATE TABLE orders (
     status VARCHAR(50) DEFAULT 'onay bekliyor',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    price DECIMAL(10, 2) NOT NULL
+);
