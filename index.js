@@ -385,7 +385,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
 
         for (const item of items) {
             // Ürün adını veri tabanından kontrol et
-            const product = await getProductByName(item.name);
+            const product = await productsModel.getProductByName(item.name); // Bu kısım
 
             if (product) {
                 const price = product.price;
@@ -393,7 +393,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
                 // Her ürünün miktarına göre toplam fiyatı hesapla
                 verifiedTotal += price * item.quantity;
 
-                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı karşılaştır (gerekirse)
+                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı karşılaştırmak için
                 if (price !== item.price) {
                     return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name}` });
                 }
@@ -419,6 +419,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 
