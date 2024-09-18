@@ -9,7 +9,7 @@ const Base64 = require('crypto-js/enc-base64');
 const axios = require('axios'); // HTTP istekleri için axios'u kullanacağız
 require('dotenv').config();
 
-const ProductsModel = require('./models/productsModel');
+const { getProductByName } = require('./models/productsModel');
 const OrdersModel = require('./models/ordersModel');
 
 const { sendPasswordResetEmail } = require('./src/services/emailService');
@@ -385,10 +385,10 @@ app.post('/create_order', authenticateToken, async (req, res) => {
 
         for (const item of items) {
             // Ürün adını veri tabanından kontrol et
-            const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
+            const product = await getProductByName(item.name);
 
-            if (product.rows.length > 0) {
-                const price = product.rows[0].price;
+            if (product) {
+                const price = product.price;
                 
                 // Her ürünün miktarına göre toplam fiyatı hesapla
                 verifiedTotal += price * item.quantity;
