@@ -462,30 +462,56 @@ app.get('/all_orders', authenticateToken, async (req, res) => {
 
 // Sipariş statüsünü güncelleme ve fiyat kontrolü
 app.post('/validate_order', authenticateToken, async (req, res) => {
-    const { email, items, totalAmount } = req.body;
+    const { items, totalAmount } = req.body;
     const userId = req.user.userId;
 
     try {
-        // Sunucudan gerçek ürün fiyatlarını çek
-        const realPrices = {}; // Veritabanından gerçek ürün fiyatlarını çekeceksiniz
-        for (const item of items) {
-            // Gerçek fiyatları karşılaştır
-            if (realPrices[item.name] && realPrices[item.name] * item.quantity !== item.price * item.quantity) {
-                // Fiyatlar uyuşmuyorsa siparişi iptal et
-                await pool.query('UPDATE orders SET status = $1 WHERE id = $2', ['iptal', orderId]);  // Burada orderId sipariş numarasını temsil etmeli
-                return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor, sipariş iptal edildi!' });
+        let verifiedItems = [];
+        let calculatedTotal = 0;
+
+        // Her bir ürünü kontrol et
+        for (let item of items) {
+            const productResult = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
+            
+            if (productResult.rows.length === 0) {
+                return res.status(400).json({ success: false, message: `Ürün bulunamadı: ${item.name}` });
             }
+
+            const productPrice = productResult.rows[0].price;
+
+            // Ürün fiyatı uyuşmuyor mu?
+            if (productPrice !== item.price) {
+                await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2 AND id = $3', ['iptal', userId, item.orderId]);
+                return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı. Ürün: ${item.name}` });
+            }
+
+            // Toplam fiyatı hesapla
+            calculatedTotal += productPrice * item.quantity;
+
+            verifiedItems.push({
+                name: item.name,
+                price: productPrice,
+                quantity: item.quantity
+            });
         }
 
-        // Eğer fiyatlar doğruysa siparişi onayla
-        await pool.query('UPDATE orders SET status = $1 WHERE id = $2', ['onaylandı', orderId]);
-        res.json({ success: true, message: 'Sipariş onaylandı!' });
+        // Toplam fiyatlar uyuşmuyor mu?
+        if (calculatedTotal !== totalAmount) {
+            await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2 AND id = $3', ['iptal', userId, item.orderId]);
+            return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmuyor. Sipariş iptal edildi.' });
+        }
 
-    } catch (err) {
-        console.error('Sunucu hatası:', err);
-        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
+        // Sipariş onaylanmış duruma getiriliyor
+        await pool.query('UPDATE orders SET status = $1 WHERE user_id = $2 AND id = $3', ['onaylandı', userId, item.orderId]);
+
+        return res.json({ success: true, message: 'Sipariş onaylandı!' });
+
+    } catch (error) {
+        console.error('Sunucu hatası:', error);
+        return res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
     }
 });
+
 
 
 
