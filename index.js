@@ -388,14 +388,17 @@ app.post('/create_order', authenticateToken, async (req, res) => {
             const product = await productsModel.getProductByName(item.name);
 
             if (product) {
-                const priceInCents = Math.round(parseFloat(product.price) * 100);
-                const itemPriceInCents = Math.round(parseFloat(item.price) * 100);
+                const priceInCents = Math.round(parseFloat(product.price) * 100); // Veritabanındaki fiyatı kuruş formatına çevir
+                const itemPriceInCents = Math.round(parseFloat(item.price) * 100); // Gelen fiyatı da kuruş formatına çevir
+
+                console.log(`Ürün: ${item.name}, Veritabanı Fiyatı (Kuruş): ${priceInCents}, Gönderilen Fiyat (Kuruş): ${itemPriceInCents}`);
 
                 // Her ürünün miktarına göre toplam fiyatı hesapla
                 verifiedTotal += priceInCents * item.quantity;
 
                 // Ürün fiyatı ile kullanıcının gönderdiği fiyatı kuruş formatında karşılaştır
                 if (priceInCents !== itemPriceInCents) {
+                    console.log(`Fiyat uyuşmazlığı: ${item.name} (Veritabanı: ${priceInCents}, Gönderilen: ${itemPriceInCents})`);
                     return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name}` });
                 }
             } else {
@@ -404,7 +407,9 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         }
 
         // Toplam tutar eşleşiyor mu kontrol et
-        const verifiedTotalInCents = parseInt(totalAmount * 100); // Toplam tutarı da kuruş cinsine çevir
+        const verifiedTotalInCents = Math.round(parseFloat(totalAmount) * 100); // Toplam tutarı da kuruş cinsine çevir
+        console.log(`Toplam Tutar (Kuruş): Hesaplanan: ${verifiedTotal}, Gönderilen: ${verifiedTotalInCents}`);
+
         if (verifiedTotal !== verifiedTotalInCents) {
             return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmazlığı' });
         }
@@ -421,7 +426,6 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
-
 
 
 
