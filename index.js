@@ -96,20 +96,16 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     try {
-        // Sunucu tarafında ürünlerin fiyatlarını alın
+        // Sunucu tarafında ürünlerin fiyatlarını alın (doğrulama için)
         const verifiedItems = [];
         let totalAmount = 0;
 
-        // Ürünlerin fiyatlarını kontrol et ve toplamı hesapla
         for (const item of items) {
             const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
 
             if (product.rows.length > 0) {
                 const price = product.rows[0].price;
-                if (price !== item.price) {
-                    return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor.' });
-                }
-                // Sepetteki her ürün için toplam fiyatı hesapla ve PayTR için sepeti oluştur
+                // Sepet fiyatlarını topla
                 totalAmount += price * item.quantity;
                 verifiedItems.push([item.name, "Ürün açıklaması", parseFloat(price) * 100]);
             } else {
@@ -122,33 +118,53 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         // PayTR API'sine ödeme isteği gönder
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: MERCHANT_ID,
+            merchant_id: PAYTR_MERCHANT_ID,
             user_ip: req.ip,  // Kullanıcı IP'sini alın
-            merchant_oid: generateMerchantOid(), // Sipariş numarası oluşturma fonksiyonu
+            merchant_oid: generateMerchantOid(),
             email: email,
             payment_amount: paymentAmountInCents,
             user_basket: verifiedItems,
-            debug_on: 1, // Geliştirme aşamasında 1, canlıda 0 olmalıdır.
-            no_installment: 0, // Taksit seçeneğini açmak veya kapatmak
-            max_installment: 12, // Maksimum taksit sayısı
-            user_name: "John Doe",  // Kullanıcı adı bilgisi
-            user_address: address,  // Kullanıcı adresi
-            user_phone: phone,  // Kullanıcı telefonu
-            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",  // Başarılı ödeme sonrası URL
-            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",  // Başarısız ödeme sonrası URL
-            timeout_limit: "30", // İşlem süresi limiti
-            currency: "TL",  // Para birimi
-            test_mode: 1  // Test modunda çalıştırmak için
+            debug_on: 1, // Test modunda
+            no_installment: 0, 
+            max_installment: 12,
+            user_name: "John Doe", 
+            user_address: address,  
+            user_phone: phone,  
+            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",  
+            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart", 
+            timeout_limit: "30",
+            currency: "TL",  
+            test_mode: 1  
         });
 
-         console.log("PayTR yanıtı:", response.data);
-
-         // PayTR'den alınan token'ı kontrol edin
         if (response.data.status === 'success') {
-            console.log("Ödeme başarılı, token alındı:", response.data.token);
+            // PayTR'den token alındı, şimdi fiyatları doğrula
+            let verifiedTotal = 0;
+
+            for (const item of items) {
+                const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
+                const price = product.rows[0].price;
+                const itemPriceInCents = Math.round(parseFloat(item.price) * 100);
+
+                // Fiyat uyuşmazlığı kontrolü
+                if (price !== itemPriceInCents) {
+                    return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name}` });
+                }
+
+                // Toplam fiyatı doğrula
+                verifiedTotal += price * item.quantity;
+            }
+
+            // Toplam tutarı doğrula
+            const verifiedTotalInCents = Math.round(parseFloat(totalAmount) * 100);
+            if (verifiedTotal !== verifiedTotalInCents) {
+                return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmazlığı' });
+            }
+
+            // Eğer tüm fiyatlar doğruysa, ödeme işlemini başlat
             res.json({ success: true, token: response.data.token });
+
         } else {
-            console.error("PayTR token alınamadı:", response.data);
             res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
         }
     } catch (err) {
@@ -156,6 +172,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 
