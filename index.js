@@ -155,19 +155,6 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
 
 
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            res.json({ success: true, token: result.token });
-        } else {
-            res.json({ success: false, message: result.err_msg });
-        }
-    } catch (error) {
-        console.error('Sunucu hatası:', error);
-        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
-    }
-});
-
 
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
