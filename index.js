@@ -141,10 +141,14 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             test_mode: 1  // Test modunda çalıştırmak için
         });
 
-        // PayTR'den alınan token'ı kontrol edin
+         console.log("PayTR yanıtı:", response.data);
+
+         // PayTR'den alınan token'ı kontrol edin
         if (response.data.status === 'success') {
+            console.log("Ödeme başarılı, token alındı:", response.data.token);
             res.json({ success: true, token: response.data.token });
         } else {
+            console.error("PayTR token alınamadı:", response.data);
             res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
         }
     } catch (err) {
