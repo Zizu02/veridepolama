@@ -72,7 +72,7 @@ function authenticateToken(req, res, next) {
 // PayTR ödeme token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
     const hash_str = [
-        MERCHANT_ID,
+        PAYTR_MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
@@ -83,8 +83,26 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
         currency,
         test_mode
     ].join('');
-    return Base64.stringify(hmacSHA256(hash_str + MERCHANT_SALT, MERCHANT_KEY));
+
+    console.log('PayTR Token oluşturma verileri:', {
+        PAYTR_MERCHANT_ID,
+        user_ip,
+        merchant_oid,
+        email,
+        payment_amount,
+        user_basket,
+        no_installment,
+        max_installment,
+        currency,
+        test_mode
+    });
+
+    const token = Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
+    console.log('Oluşturulan PayTR Token:', token);
+    
+    return token;
 }
+
 // Benzersiz merchant_oid oluşturma fonksiyonu
 function generateMerchantOid() {
     return 'oid_' + new Date().getTime();  // Benzersiz bir sipariş numarası
@@ -132,6 +150,11 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             test_mode: 1
         });
 
+        const token = createPaytrToken(req.ip, generateMerchantOid(), email, paymentAmountInCents, verifiedItems, 0, 12, 'TL', 1);
+
+        // PayTR Token loglama
+        console.log('PayTR Token:', token);
+
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
             merchant_id: PAYTR_MERCHANT_ID,
             user_ip: req.ip,
@@ -139,6 +162,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             email: email,
             payment_amount: paymentAmountInCents,
             user_basket: verifiedItems,
+            paytr_token: token,
             no_installment: 0,
             max_installment: 12,
             user_name: "John Doe",
@@ -164,6 +188,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 
