@@ -114,25 +114,8 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         const paymentAmountInCents = parseFloat(totalAmount) * 100;
 
-        // PayTR API'sine ödeme isteği gönder
-        console.log('PayTR API isteği yapılıyor...');
-        console.log({
-            merchant_id: PAYTR_MERCHANT_ID,
-            user_ip: req.ip,
-            merchant_oid: generateMerchantOid(),
-            email: email,
-            payment_amount: paymentAmountInCents,
-            user_basket: verifiedItems,
-            no_installment: 0,
-            max_installment: 12,
-            user_name: "John Doe",
-            user_address: address,
-            user_phone: phone,
-            currency: "TL",
-            test_mode: 1
-        });
-
-        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
+        // Token oluşturma aşamasına log ekleyelim
+        const paytrParams = {
             merchant_id: PAYTR_MERCHANT_ID,
             user_ip: req.ip,
             merchant_oid: generateMerchantOid(),
@@ -149,7 +132,12 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             timeout_limit: 30,
             currency: "TL",
             test_mode: 1
-        });
+        };
+
+        console.log("PayTR İstek Parametreleri:", paytrParams);
+
+        // PayTR API'sine ödeme isteği gönder
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', paytrParams);
 
         // Yanıtı loglayın
         console.log("PayTR Yanıtı:", response.data);
@@ -157,6 +145,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         if (response.data.status === 'success') {
             res.json({ success: true, token: response.data.token });
         } else {
+            console.error("PayTR token oluşturma hatası:", response.data);
             res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
         }
     } catch (err) {
@@ -164,7 +153,6 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
-
 
 
 
