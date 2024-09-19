@@ -126,6 +126,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
                 totalAmount += price * item.quantity;
                 verifiedItems.push([item.name, "Ürün açıklaması", parseFloat(price) * 100]);
             } else {
+                console.log('Ürün bulunamadı:', item.name);  // Ürün bulunamadığında loglayın
                 return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
             }
         }
@@ -150,7 +151,9 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             test_mode: 1
         });
 
-        const token = createPaytrToken(req.ip, generateMerchantOid(), email, paymentAmountInCents, verifiedItems, 0, 12, 'TL', 1);
+        const merchantOid = generateMerchantOid(); // Generate OID once for consistency
+
+        const token = createPaytrToken(req.ip, merchantOid, email, paymentAmountInCents, verifiedItems, 0, 12, 'TL', 1);
 
         // PayTR Token loglama
         console.log('PayTR Token:', token);
@@ -158,7 +161,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
             merchant_id: PAYTR_MERCHANT_ID,
             user_ip: req.ip,
-            merchant_oid: generateMerchantOid(),
+            merchant_oid: merchantOid,
             email: email,
             payment_amount: paymentAmountInCents,
             user_basket: verifiedItems,
@@ -181,18 +184,14 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         if (response.data.status === 'success') {
             res.json({ success: true, token: response.data.token });
         } else {
+            console.log('PayTR token alınamadı. Yanıt:', response.data);  // Yanıtı loglayın
             res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
         }
     } catch (err) {
-        console.error('Sunucu hatası:', err);
+        console.error('Sunucu hatası:', err);  // Hata durumunu loglayın
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
-
-
-
-
-
 
 
 
