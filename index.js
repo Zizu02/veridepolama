@@ -71,37 +71,46 @@ function authenticateToken(req, res, next) {
 
 // PayTR ödeme token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
+    // `user_basket` parametresini base64 encode edelim
+    const encodedBasket = Buffer.from(JSON.stringify(user_basket)).toString('base64');
+
+    // Hash için gerekli stringi oluştur
     const hash_str = [
         PAYTR_MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
         payment_amount,
-        user_basket,
+        encodedBasket,
         no_installment,
         max_installment,
         currency,
         test_mode
     ].join('');
 
+    // Loglama: Token oluşturulurken kullanılan tüm verileri göster
     console.log('PayTR Token oluşturma verileri:', {
         PAYTR_MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
         payment_amount,
-        user_basket,
+        encodedBasket,  // Base64 encode edilmiş sepet
         no_installment,
         max_installment,
         currency,
         test_mode
     });
 
+    // Token oluşturma işlemi
     const token = Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
+
+    // Oluşturulan Token'ı loglayalım
     console.log('Oluşturulan PayTR Token:', token);
-    
+
     return token;
 }
+
 
 // Benzersiz merchant_oid oluşturma fonksiyonu
 function generateMerchantOid() {
