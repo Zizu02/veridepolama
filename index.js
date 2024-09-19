@@ -109,37 +109,50 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
                 if (price !== item.price) {
                     return res.status(400).json({ success: false, message: 'Fiyatlar uyuşmuyor.' });
                 }
-                // Toplam fiyatı hesapla
+                // Sepetteki her ürün için toplam fiyatı hesapla ve PayTR için sepeti oluştur
                 totalAmount += price * item.quantity;
+                verifiedItems.push([item.name, "Ürün açıklaması", parseFloat(price) * 100]);
             } else {
                 return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
             }
         }
-        
 
         // Toplam tutarı kuruş cinsine çevirin
         const paymentAmountInCents = parseFloat(totalAmount) * 100;
 
         // PayTR API'sine ödeme isteği gönder
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-           merchant_id: PAYTR_MERCHANT_ID,
-           user_ip: req.ip,
-           merchant_oid: generateMerchantOid(),
-           email: email,
-           payment_amount: paymentAmountInCents,
-           user_basket: verifiedItems,
-           debug_on: 1,
-           no_installment: 0,
-           max_installment: 12,
-           user_name: "John Doe",
-           user_address: address,
-           user_phone: phone,
-           merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-           merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-           timeout_limit: 30,
-           currency: "TL",
-           test_mode: 1
-       });
+            merchant_id: PAYTR_MERCHANT_ID,
+            user_ip: req.ip,  // Kullanıcı IP'sini alın
+            merchant_oid: generateMerchantOid(), // Sipariş numarası oluşturma fonksiyonu
+            email: email,
+            payment_amount: paymentAmountInCents,
+            user_basket: verifiedItems,
+            debug_on: 1, // Geliştirme aşamasında 1, canlıda 0 olmalıdır.
+            no_installment: 0, // Taksit seçeneğini açmak veya kapatmak
+            max_installment: 12, // Maksimum taksit sayısı
+            user_name: "John Doe",  // Kullanıcı adı bilgisi
+            user_address: address,  // Kullanıcı adresi
+            user_phone: phone,  // Kullanıcı telefonu
+            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",  // Başarılı ödeme sonrası URL
+            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",  // Başarısız ödeme sonrası URL
+            timeout_limit: "30", // İşlem süresi limiti
+            currency: "TL",  // Para birimi
+            test_mode: 1  // Test modunda çalıştırmak için
+        });
+
+        // PayTR'den alınan token'ı kontrol edin
+        if (response.data.status === 'success') {
+            res.json({ success: true, token: response.data.token });
+        } else {
+            res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
+        }
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
 
 
         const result = await response.json();
