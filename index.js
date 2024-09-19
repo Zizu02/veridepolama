@@ -26,9 +26,9 @@ const pool = new Pool({
 });
 
 // PayTR için gerekli bilgiler (ENV değişkenlerinden alınacak)
-const PAYTR_MERCHANT_ID = process.env.PAYTR_MERCHANT_ID;
-const PAYTR_MERCHANT_KEY = process.env.PAYTR_MERCHANT_KEY;
-const PAYTR_MERCHANT_SALT = process.env.PAYTR_MERCHANT_SALT;
+const MERCHANT_ID = process.env.MERCHANT_ID;
+const MERCHANT_KEY = process.env.MERCHANT_KEY;
+const MERCHANT_SALT = process.env.MERCHANT_SALT;
 
 
 // Nodemailer Transporter yapılandırması
@@ -72,7 +72,7 @@ function authenticateToken(req, res, next) {
 // PayTR ödeme token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
     const hash_str = [
-        PAYTR_MERCHANT_ID,
+        MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
@@ -83,7 +83,7 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
         currency,
         test_mode
     ].join('');
-    return Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
+    return Base64.stringify(hmacSHA256(hash_str + MERCHANT_SALT, MERCHANT_KEY));
 }
 // Benzersiz merchant_oid oluşturma fonksiyonu
 function generateMerchantOid() {
@@ -122,7 +122,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         // PayTR API'sine ödeme isteği gönder
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: PAYTR_MERCHANT_ID,
+            merchant_id: MERCHANT_ID,
             user_ip: req.ip,  // Kullanıcı IP'sini alın
             merchant_oid: generateMerchantOid(), // Sipariş numarası oluşturma fonksiyonu
             email: email,
@@ -165,8 +165,8 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 app.post('/paytr_callback', (req, res) => {
     const { merchant_oid, status, total_amount, hash } = req.body;
 
-    const hash_str = `${merchant_oid}${PAYTR_MERCHANT_SALT}${status}${total_amount}`;
-    const generated_hash = Base64.stringify(hmacSHA256(hash_str, PAYTR_MERCHANT_KEY));
+    const hash_str = `${merchant_oid}${MERCHANT_SALT}${status}${total_amount}`;
+    const generated_hash = Base64.stringify(hmacSHA256(hash_str, MERCHANT_KEY));
 
     if (generated_hash !== hash) {
         return res.status(400).send('Hash doğrulaması başarısız oldu.');
@@ -190,13 +190,13 @@ app.post('/refund', async (req, res) => {
     try {
         // İade token'ı oluşturma
         const paytrToken = crypto
-            .createHmac('sha256', PAYTR_MERCHANT_KEY)
-            .update(`${PAYTR_MERCHANT_ID}${merchant_oid}${return_amount}${PAYTR_MERCHANT_SALT}`)
+            .createHmac('sha256', MERCHANT_KEY)
+            .update(`${MERCHANT_ID}${merchant_oid}${return_amount}${PAYTR_MERCHANT_SALT}`)
             .digest('base64');
 
         // İade için gerekli POST verileri
         const postData = {
-            merchant_id: PAYTR_MERCHANT_ID,
+            merchant_id: MERCHANT_ID,
             merchant_oid: merchant_oid,
             return_amount: return_amount,
             // Eğer referans numarası sağlanmışsa gönder
