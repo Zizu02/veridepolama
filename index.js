@@ -377,7 +377,7 @@ app.post('/confirm_reset_password', async (req, res) => {
 
 // Yeni sipariş oluşturma
 app.post('/create_order', authenticateToken, async (req, res) => {
-    const { items, totalAmount } = req.body; // DOM'dan gelen ürün adı, miktarı ve fiyatı burada
+    const { items, totalAmount } = req.body; // Ürün adı ve miktarı burada alınır
     const userId = req.user.userId;
 
     try {
@@ -388,18 +388,15 @@ app.post('/create_order', authenticateToken, async (req, res) => {
             const product = await productsModel.getProductByName(item.name);
 
             if (product) {
-                const realPriceInCents = Math.round(parseFloat(product.price) * 100); // Veritabanındaki fiyatı kuruş formatına çevir
-                const domPriceInCents = Math.round(parseFloat(item.price) * 100); // DOM'dan gelen fiyatı da kuruş formatına çevir
+                const priceInCents = Math.round(parseFloat(product.price) * 100); // Veritabanındaki fiyatı kuruş formatına çevir
+                const itemPriceInCents = Math.round(parseFloat(item.price) * 100); // DOM'dan gelen fiyatı kuruş formatına çevir
 
                 // Her ürünün miktarına göre toplam fiyatı hesapla
-                verifiedTotal += realPriceInCents * item.quantity;
+                verifiedTotal += priceInCents * item.quantity;
 
-                // Sunucudan gelen gerçek fiyat ile DOM'dan gelen fiyatı karşılaştır
-                if (realPriceInCents !== domPriceInCents) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Fiyat uyuşmazlığı: ${item.name} (Veritabanı: ${realPriceInCents}, DOM: ${domPriceInCents})`
-                    });
+                // Ürün fiyatı ile kullanıcının gönderdiği fiyatı kuruş formatında karşılaştır
+                if (priceInCents !== itemPriceInCents) {
+                    return res.status(400).json({ success: false, message: `Fiyat uyuşmazlığı: ${item.name} (Veritabanı: ${priceInCents}, DOM: ${itemPriceInCents})` });
                 }
             } else {
                 return res.status(400).json({ success: false, message: `Ürün bulunamadı: ${item.name}` });
@@ -407,7 +404,7 @@ app.post('/create_order', authenticateToken, async (req, res) => {
         }
 
         // Toplam tutar eşleşiyor mu kontrol et
-        const verifiedTotalInCents = Math.round(parseFloat(totalAmount) * 100);
+        const verifiedTotalInCents = Math.round(parseFloat(totalAmount) * 100); // Toplam tutarı da kuruş cinsine çevir
         if (verifiedTotal !== verifiedTotalInCents) {
             return res.status(400).json({ success: false, message: 'Toplam tutar uyuşmazlığı' });
         }
