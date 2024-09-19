@@ -161,25 +161,26 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         const token = createPaytrToken(req.ip, merchantOid, email, paymentAmountInCents, verifiedItems, 0, 12, 'TL', 1);
         console.log('PayTR Token oluşturuldu:', token);
 
-        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: PAYTR_MERCHANT_ID,
-            user_ip: req.ip,
-            merchant_oid: merchantOid,
-            email: email,
-            payment_amount: paymentAmountInCents,
-            user_basket: verifiedItems,
-            paytr_token: token,
-            no_installment: 0,
-            max_installment: 12,
-            user_name: "John Doe",
-            user_address: address,
-            user_phone: phone,
-            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-            timeout_limit: 30,
-            currency: "TL",
-            test_mode: 1
-        });
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', new URLSearchParams({
+            'merchant_id': PAYTR_MERCHANT_ID,
+            'user_ip': req.ip,
+            'merchant_oid': generateMerchantOid(),
+            'email': email,
+            'payment_amount': paymentAmountInCents,
+            'user_basket': Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
+            'paytr_token': token,
+            'no_installment': 0,
+            'max_installment': 12,
+            'user_name': "John Doe",
+            'user_address': address,
+            'user_phone': phone,
+            'merchant_ok_url': "https://sapphire-algae-9ajt.squarespace.com/cart",
+            'merchant_fail_url': "https://sapphire-algae-9ajt.squarespace.com/cart",
+            'timeout_limit': 30,
+            'currency': "TL",
+            'test_mode': 1
+        }));
+
 
         console.log("PayTR API yanıtı:", response.data);
 
