@@ -190,6 +190,9 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             console.log("PayTR API yanıt kodu:", response.status);
             console.log("PayTR API yanıt verisi:", response.data);
 
+            process.stdout.write('API isteği başarılı\n');
+            console.log('API isteği başarılı', response.data);
+
             if (response.status === 200 && response.data.status === 'success') {
                 console.log('PayTR Token alındı:', response.data.token);
                 res.json({ success: true, token: response.data.token });
@@ -199,8 +202,9 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             }
         } catch (error) {
             // PayTR API isteği sırasında oluşan hata
-            console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
-            res.status(500).json({ success: false, message: 'PayTR API hatası: ' + error.message });
+            process.stderr.write('API isteğinde hata meydana geldi\n');
+            console.error('API isteğinde hata', error.response ? error.response.data : error.message);
+            res.status(500).json({ success: false, message: 'API isteğinde hata: ' + error.message });
         }
 
     } catch (err) {
@@ -600,15 +604,20 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
 
 
 app.listen(process.env.PORT || 10000, () => {
-    console.log('Sunucu çalışıyor');
+    process.stdout.write('Bu bir stdout mesajıdır\n');  // stdout loglama
+    process.stderr.write('Bu bir stderr hata mesajıdır\n');  // stderr hata loglama
+    console.log('Sunucu çalışıyor');  // Normal log
 });
+
 
 // Beklenmeyen hatalar için
 process.on('uncaughtException', (err) => {
+    process.stderr.write(`Beklenmeyen Hata: ${err}\n`);
     console.error('Beklenmeyen Hata:', err);
 });
 
 // Promise hataları için
 process.on('unhandledRejection', (reason, promise) => {
+    process.stderr.write(`Yakalanmayan Promise Hatası: ${reason}\n`);
     console.error('Yakalanmayan Promise Hatası:', reason);
 });
