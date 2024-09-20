@@ -121,6 +121,7 @@ function generateMerchantOid() {
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
     const { email, address, phone, items } = req.body;
+    console.log('Ödeme isteği alındı:', req.body);
     const userId = req.user.userId;
 
     try {
