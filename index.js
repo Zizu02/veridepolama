@@ -168,18 +168,18 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             }
         });
 
-        console.log("PayTR API yanıt kodu:", response.status);
-        console.log("PayTR API yanıt verisi:", response.data);
-
-        if (response.data.status === 'success') {
-            return res.json({ success: true, token: response.data.token });
+        // PayTR yanıtını kontrol et
+        if (response.status === 200 && response.data.status === 'success') {
+            console.log('PayTR Token alındı:', response.data.token);
+            res.json({ success: true, token: response.data.token });
         } else {
-            return res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
+            console.error('PayTR token alınamadı. Yanıt:', response.data);
+            res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
         }
-        
+
     } catch (error) {
-        console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
-        return res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+        console.error('Sunucu hatası:', error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
 
