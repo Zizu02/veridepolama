@@ -153,8 +153,9 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         // PayTR API'ye istek gönderme
         try {
+            console.log("PayTR API'ye istek gönderiliyor...");
             const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-                merchant_id: process.env.MERCHANT_ID,
+                merchant_id: MERCHANT_ID,
                 user_ip: req.ip,
                 merchant_oid: merchantOid,
                 email: email,
@@ -170,40 +171,30 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
                 merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
                 timeout_limit: 30,
                 currency: "TL",
-                test_mode: 0
+                test_mode: 1
             }, {
                 headers: {
                     'Content-Type': 'application/json'
-                }
+        }
             });
 
-            console.log("PayTR API yanıt kodu:", response.status);
-            console.log("PayTR API yanıt verisi:", response.data);
-        } catch (error) {
-            console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
-        }
-
-
+            console.log("PayTR API yanıtı başarılı:", response.data);
             if (response.status === 200 && response.data.status === 'success') {
-                console.log('PayTR Token alındı:', response.data.token);
                 res.json({ success: true, token: response.data.token });
             } else {
                 console.error('PayTR token alınamadı. Yanıt:', response.data);
                 res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
             }
         } catch (error) {
-            // PayTR API isteği sırasında oluşan hata
-            process.stderr.write('API isteğinde hata meydana geldi\n');
-            console.error('API isteğinde hata', error.response ? error.response.data : error.message);
-            res.status(500).json({ success: false, message: 'API isteğinde hata: ' + error.message });
+            // Hata durumunda detaylı loglama
+           if (error.response) {
+                console.error('PayTR API hatası:', error.response.status, error.response.data);
+            } else {
+               console.error('PayTR API isteği sırasında bir hata oluştu:', error.message);
+            }
+            res.status(500).json({ success: false, message: 'PayTR API hatası: ' + error.message });
         }
 
-    //} catch (err) {
-        // Genel sunucu hatası
-      //  console.error('Sunucu hatası:', err);
-      //  res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
-  //  }
-});
 
 
 
