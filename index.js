@@ -74,12 +74,13 @@ function authenticateToken(req, res, next) {
 
 // PayTR ödeme token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
-    // `user_basket` parametresini base64 encode edelim
+    // Sepet encode edilirken log ekleyelim
     const encodedBasket = Buffer.from(JSON.stringify(user_basket)).toString('base64');
+    console.log('Base64 Encode Edilmiş Sepet:', encodedBasket);
 
-    // Hash için gerekli stringi oluştur
+    // Hash stringi oluştururken log ekleyelim
     const hash_str = [
-        PAYTR_MERCHANT_ID,
+        process.env.MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
@@ -91,30 +92,15 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
         test_mode
     ].join('');
 
-    // Loglama: Token oluşturulurken kullanılan tüm verileri göster
-    console.log('PayTR Token oluşturma verileri:', {
-        PAYTR_MERCHANT_ID,
-        user_ip,
-        merchant_oid,
-        email,
-        payment_amount,
-        encodedBasket,  // Base64 encode edilmiş sepet
-        no_installment,
-        max_installment,
-        currency,
-        test_mode
-    });
+    console.log('Oluşturulan Hash String:', hash_str);
 
     // Token oluşturma işlemi
-    const token = Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
-    console.log('Oluşturulan Hash String:', hash_str);
-    console.log('Oluşturulan Token:', token);
-    
-    // Oluşturulan Token'ı loglayalım
+    const token = Base64.stringify(hmacSHA256(hash_str + process.env.MERCHANT_SALT, process.env.MERCHANT_KEY));
     console.log('Oluşturulan PayTR Token:', token);
 
     return token;
 }
+
 
 
 // Benzersiz merchant_oid oluşturma fonksiyonu
@@ -168,7 +154,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         // PayTR API'ye istek gönderme
         try {
             const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-                merchant_id: MERCHANT_ID,
+                merchant_id: process.env.MERCHANT_ID,
                 user_ip: req.ip,
                 merchant_oid: merchantOid,
                 email: email,
@@ -191,12 +177,12 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
                 }
             });
 
-            // PayTR API yanıtını loglama
             console.log("PayTR API yanıt kodu:", response.status);
             console.log("PayTR API yanıt verisi:", response.data);
+        } catch (error) {
+            console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
+        }
 
-            process.stdout.write('API isteği başarılı\n');
-            console.log('API isteği başarılı', response.data);
 
             if (response.status === 200 && response.data.status === 'success') {
                 console.log('PayTR Token alındı:', response.data.token);
