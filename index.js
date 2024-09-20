@@ -81,7 +81,7 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
     // Hash stringi oluştururken log ekleyelim
     const hash_str = [
-        process.env.MERCHANT_ID,
+        process.env.MERCHANT_ID,     // .env dosyasından değerler alınıyor
         user_ip,
         merchant_oid,
         email,
@@ -96,12 +96,13 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
     console.log('Oluşturulan Hash String:', hash_str);
 
     // Token oluşturma işlemi
-    const paytr_token = hash_str + MERCHANT_SALT;
-    const token = crypto.createHmac('sha256', MERCHANT_KEY).update(paytr_token).digest('base64');
-        console.log('Oluşturulan PayTR Token:', token);
+    const paytr_token = hash_str + process.env.MERCHANT_SALT;  // MERCHANT_SALT environment'tan alınıyor
+    const token = crypto.createHmac('sha256', process.env.MERCHANT_KEY).update(paytr_token).digest('base64');  // MERCHANT_KEY environment'tan alınıyor
 
-        return token;
-    }
+    console.log('Oluşturulan PayTR Token:', token);
+
+    return token;
+}
 
 
 
