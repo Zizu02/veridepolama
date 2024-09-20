@@ -107,7 +107,9 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
     // Token oluşturma işlemi
     const token = Base64.stringify(hmacSHA256(hash_str + PAYTR_MERCHANT_SALT, PAYTR_MERCHANT_KEY));
-
+    console.log('Oluşturulan Hash String:', hash_str);
+    console.log('Oluşturulan Token:', token);
+    
     // Oluşturulan Token'ı loglayalım
     console.log('Oluşturulan PayTR Token:', token);
 
