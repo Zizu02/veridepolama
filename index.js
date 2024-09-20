@@ -138,6 +138,10 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         console.log('Toplam tutar hesaplandı:', totalAmountInCents);
 
+        // IP adresini IPv4 formatına çevirin
+        const ipv4 = req.ip.split(':').pop(); // IPv6 formatından IPv4'e çevirme
+        console.log('Kullanıcının IP Adresi:', ipv4);
+
         // PayTR ödeme isteğini gönder
         const merchantOid = generateMerchantOid();
         const token = createPaytrToken(req.ip, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
@@ -146,7 +150,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         await axios.post('https://www.paytr.com/odeme/api/get-token', {
             merchant_id: MERCHANT_ID,
-            user_ip: req.ip,
+            user_ip: ipv4, // IP burada IPv4 formatında
             merchant_oid: merchantOid,
             email: email,
             payment_amount: totalAmountInCents,
