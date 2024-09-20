@@ -148,7 +148,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             user_ip: req.ip,
             merchant_oid: merchantOid,
             email: email,
-            payment_amount: totalAmountInCents,
+            payment_amount: paymentAmountInCents,
             user_basket: Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
             paytr_token: token,
             no_installment: 0,
@@ -165,19 +165,13 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             headers: {
                 'Content-Type': 'application/json'
             }
-        });
+        }).then(response => {
+            console.log("PayTR API yanıt kodu:", response.status);
+            console.log("PayTR API yanıt verisi:", response.data);
+        }).catch(error => {
+            console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
+    });
 
-        if (response.status === 200 && response.data.status === 'success') {
-            res.json({ success: true, token: response.data.token });
-        } else {
-            console.error('PayTR token alınamadı:', response.data);
-            res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
-        }
-    } catch (err) {
-        console.error('Sunucu hatası:', err);
-        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
-    }
-});
 
 
 
