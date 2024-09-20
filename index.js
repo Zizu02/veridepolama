@@ -4,6 +4,7 @@ const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');  
 const nodemailer = require('nodemailer'); 
+const crypto = require('crypto');
 const hmacSHA256 = require('crypto-js/hmac-sha256');
 const Base64 = require('crypto-js/enc-base64'); 
 const axios = require('axios'); // HTTP istekleri için axios'u kullanacağız
@@ -95,11 +96,12 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
     console.log('Oluşturulan Hash String:', hash_str);
 
     // Token oluşturma işlemi
-    const token = Base64.stringify(hmacSHA256(hash_str + process.env.MERCHANT_SALT, process.env.MERCHANT_KEY));
-    console.log('Oluşturulan PayTR Token:', token);
+    const paytr_token = hash_str + MERCHANT_SALT;
+    const token = crypto.createHmac('sha256', MERCHANT_KEY).update(paytr_token).digest('base64');
+        console.log('Oluşturulan PayTR Token:', token);
 
-    return token;
-}
+        return token;
+    }
 
 
 
