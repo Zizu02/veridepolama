@@ -110,91 +110,72 @@ function generateMerchantOid() {
 
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
-    console.log('create_payment endpointine ulaşıldı');
-
-    const { email, address, phone, items } = req.body;
+    const { email, address, phone, items, totalAmount } = req.body;
     const userId = req.user.userId;
 
     try {
-        console.log('Gelen ödeme isteği verileri:', { email, address, phone, items });
+        console.log('Ödeme isteği alındı:', { email, address, phone, items });
 
-        // Ürünlerin fiyatlarını kontrol et ve toplamı hesapla
+        // Ödeme için verifiedItems ve toplam tutarı hesaplayın
         const verifiedItems = [];
-        let totalAmount = 0;
+        let totalAmountInCents = 0;
 
         for (const item of items) {
             console.log(`Ürün kontrol ediliyor: ${item.name}`);
-            
-            // Veritabanından ürün fiyatı sorgusu
             const product = await pool.query('SELECT price FROM products WHERE name = $1', [item.name]);
 
             if (product.rows.length > 0) {
                 const price = product.rows[0].price;
-                totalAmount += price * item.quantity;
-                verifiedItems.push([item.name, "Ürün açıklaması", parseFloat(price) * 100]);
-                console.log(`Ürün fiyatı bulundu: ${item.name}, fiyat: ${price}`);
+                totalAmountInCents += price * item.quantity * 100;
+                verifiedItems.push([item.name, "Ürün açıklaması", price * 100]);
             } else {
-                console.error(`Ürün bulunamadı: ${item.name}`);
                 return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
             }
         }
 
-        // Toplam ödeme miktarını kuruş cinsine çevir
-        const paymentAmountInCents = Math.round(totalAmount * 100);
-        console.log(`Toplam ödeme miktarı hesaplandı: ${paymentAmountInCents} kuruş`);
+        console.log('Toplam tutar hesaplandı:', totalAmountInCents);
 
-        // PayTR için benzersiz merchant_oid oluştur
+        // PayTR ödeme isteğini gönder
         const merchantOid = generateMerchantOid();
-        console.log('Oluşturulan merchant_oid:', merchantOid);
+        const token = createPaytrToken(req.ip, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
 
-        // PayTR API isteği için token oluştur
-        const token = createPaytrToken(req.ip, merchantOid, email, paymentAmountInCents, verifiedItems, 0, 12, 'TL', 1);
         console.log('PayTR Token oluşturuldu:', token);
 
-        // PayTR API'ye istek gönderme
-        try {
-            console.log("PayTR API'ye istek gönderiliyor...");
-            const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-                merchant_id: MERCHANT_ID,
-                user_ip: req.ip,
-                merchant_oid: merchantOid,
-                email: email,
-                payment_amount: paymentAmountInCents,
-                user_basket: Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
-                paytr_token: token,
-                no_installment: 0,
-                max_installment: 12,
-                user_name: "John Doe",
-                user_address: address,
-                user_phone: phone,
-                merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-                merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-                timeout_limit: 30,
-                currency: "TL",
-                test_mode: 1
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
-        }
-            });
-
-            console.log("PayTR API yanıtı başarılı:", response.data);
-            if (response.status === 200 && response.data.status === 'success') {
-                res.json({ success: true, token: response.data.token });
-            } else {
-                console.error('PayTR token alınamadı. Yanıt:', response.data);
-                res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
+            merchant_id: MERCHANT_ID,
+            user_ip: req.ip,
+            merchant_oid: merchantOid,
+            email: email,
+            payment_amount: totalAmountInCents,
+            user_basket: Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
+            paytr_token: token,
+            no_installment: 0,
+            max_installment: 12,
+            user_name: "John Doe",
+            user_address: address,
+            user_phone: phone,
+            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
+            timeout_limit: 30,
+            currency: "TL",
+            test_mode: 1
+        }, {
+            headers: {
+                'Content-Type': 'application/json'
             }
-        } catch (error) {
-            // Hata durumunda detaylı loglama
-           if (error.response) {
-                console.error('PayTR API hatası:', error.response.status, error.response.data);
-            } else {
-               console.error('PayTR API isteği sırasında bir hata oluştu:', error.message);
-            }
-            res.status(500).json({ success: false, message: 'PayTR API hatası: ' + error.message });
-        }
+        });
 
+        if (response.status === 200 && response.data.status === 'success') {
+            res.json({ success: true, token: response.data.token });
+        } else {
+            console.error('PayTR token alınamadı:', response.data);
+            res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
+        }
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
 
 
 
