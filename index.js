@@ -198,11 +198,11 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             res.status(500).json({ success: false, message: 'API isteğinde hata: ' + error.message });
         }
 
-    } catch (err) {
+    //} catch (err) {
         // Genel sunucu hatası
-        console.error('Sunucu hatası:', err);
-        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
-    }
+      //  console.error('Sunucu hatası:', err);
+      //  res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+  //  }
 });
 
 
