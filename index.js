@@ -29,6 +29,9 @@ const pool = new Pool({
 const MERCHANT_ID = process.env.MERCHANT_ID;
 const MERCHANT_KEY = process.env.MERCHANT_KEY;
 const MERCHANT_SALT = process.env.MERCHANT_SALT;
+console.log('Merchant ID:', process.env.MERCHANT_ID);
+console.log('Merchant Key:', process.env.MERCHANT_KEY);
+console.log('Merchant Salt:', process.env.MERCHANT_SALT);
 
 
 // Nodemailer Transporter yapılandırması
