@@ -145,11 +145,11 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         console.log('PayTR Token oluşturuldu:', token);
 
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: MERCHANT_ID,
+            merchant_id: process.env.MERCHANT_ID,
             user_ip: req.ip,
             merchant_oid: merchantOid,
             email: email,
-            payment_amount: paymentAmountInCents,
+            payment_amount: totalAmountInCents,
             user_basket: Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
             paytr_token: token,
             no_installment: 0,
@@ -166,12 +166,23 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             headers: {
                 'Content-Type': 'application/json'
             }
-        }).then(response => {
-            console.log("PayTR API yanıt kodu:", response.status);
-            console.log("PayTR API yanıt verisi:", response.data);
-        }).catch(error => {
-            console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
-    });
+        });
+
+        console.log("PayTR API yanıt kodu:", response.status);
+        console.log("PayTR API yanıt verisi:", response.data);
+
+        if (response.data.status === 'success') {
+            return res.json({ success: true, token: response.data.token });
+        } else {
+            return res.status(400).json({ success: false, message: 'PayTR token alınamadı.' });
+        }
+        
+    } catch (error) {
+        console.error('PayTR API hatası:', error.response ? error.response.data : error.message);
+        return res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
 
 
 
