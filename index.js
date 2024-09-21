@@ -113,6 +113,13 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
     return token;
 }
 
+// Kullanıcının gerçek IP'sini almak için fonksiyon
+function getRealIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = forwarded ? forwarded.split(/, /)[0] : req.connection.remoteAddress;
+    return ip;
+}
+
 
 
 // Benzersiz merchant_oid oluşturma fonksiyonu
