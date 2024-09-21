@@ -644,27 +644,28 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
     }
 });
 
-// QR kod oluşturma için endpoint
+const QRCode = require('qrcode');
+
+// Masaya özel QR kodu oluşturma endpoint'i
 app.get('/generate-qr/:tableNumber', (req, res) => {
     const tableNumber = req.params.tableNumber;
+    const orderUrl = `https://sapphire-algae-9ajt.squarespace.com/order/${tableNumber}`; // Sipariş URL'si
 
-    // Masa numarasını içeren bir URL oluşturuyoruz
-    const url = `https://sapphire-algae-9ajt.squarespace.com/order/${tableNumber}`;
-
-    // URL'yi QR koda dönüştürme
-    QRCode.toDataURL(url, (err, src) => {
+    // QR kodunu oluştur
+    QRCode.toDataURL(orderUrl, (err, qrCode) => {
         if (err) {
-            console.error('QR kod oluşturulurken hata oluştu:', err);
-            return res.status(500).send('QR kod oluşturulamadı');
+            console.error('QR kod oluşturulurken hata:', err);
+            return res.status(500).json({ success: false, message: 'QR kodu oluşturulamadı!' });
         }
 
-        // QR kodu bir img etiketi ile gönderiyoruz
+        // QR kodu başarıyla oluşturuldu, geri döndürüyoruz
         res.send(`
-            <h1>Masa ${tableNumber} için QR Kod</h1>
-            <img src="${src}">
+            <h2>Masa ${tableNumber} için QR Kodu</h2>
+            <img src="${qrCode}" alt="Masa ${tableNumber} için QR Kodu" />
         `);
     });
 });
+
 
 // Masaya özel sipariş endpoint'i
 app.post('/order/:tableNumber', authenticateToken, (req, res) => {
