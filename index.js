@@ -666,6 +666,19 @@ app.get('/generate-qr/:tableNumber', (req, res) => {
     });
 });
 
+// Masaya özel sipariş endpoint'i
+app.post('/order/:tableNumber', authenticateToken, (req, res) => {
+    const tableNumber = req.params.tableNumber; // QR koddan gelen masa numarası
+    const { items, totalAmount } = req.body;    // Sipariş detayları
+
+    console.log(`Masa ${tableNumber} için sipariş alındı.`);
+    console.log('Sipariş Detayları:', { items, totalAmount });
+
+    // Siparişi işleyebiliriz (veritabanına kaydetmek vb.)
+    // Daha önceki kodlarınız gibi burada da sipariş veritabanına kaydedilecek
+    res.send(`Masa ${tableNumber} için sipariş alındı.`);
+});
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
