@@ -134,15 +134,14 @@ function generateMerchantOid() {
     return merchantOid;
 }
 
-function generateQRCode(tableId) {
-    const qrData = `https://sapphire-algae-9ajt.squarespace.com/order?table=${tableId}`;
-    return QRCode.toDataURL(qrData, function (err, url) {
-        if (err) {
-            console.error('QR kod oluşturulamadı:', err);
-        } else {
-            console.log('QR Kod:', url);
-            return url;  // QR kodu bir URL olarak dönecek
-        }
+// QR kod oluşturma fonksiyonu
+function generateQRCodeForTable(tableNumber) {
+    const url = `https://veridepolama.onrender.com/order/${tableNumber}`; // Her masanın URL'si
+    return new Promise((resolve, reject) => {
+        QRCode.toDataURL(url, (err, url) => {
+            if (err) reject(err);
+            resolve(url);
+        });
     });
 }
 
@@ -667,16 +666,24 @@ app.get('/generate-qr/:tableNumber', (req, res) => {
 
 
 // Masaya özel sipariş endpoint'i
-app.post('/order/:tableNumber', authenticateToken, (req, res) => {
+app.post('/order/:tableNumber', authenticateToken, async (req, res) => {
     const tableNumber = req.params.tableNumber; // QR koddan gelen masa numarası
     const { items, totalAmount } = req.body;    // Sipariş detayları
 
     console.log(`Masa ${tableNumber} için sipariş alındı.`);
     console.log('Sipariş Detayları:', { items, totalAmount });
 
-    // Siparişi işleyebiliriz (veritabanına kaydetmek vb.)
-    // Daha önceki kodlarınız gibi burada da sipariş veritabanına kaydedilecek
-    res.send(`Masa ${tableNumber} için sipariş alındı.`);
+    try {
+        // Siparişi veritabanına kaydetme
+        const result = await pool.query(
+            'INSERT INTO orders (table_number, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
+            [tableNumber, JSON.stringify(items), totalAmount]
+        );
+        res.json({ success: true, message: 'Sipariş başarıyla alındı!', order: result.rows[0] });
+    } catch (error) {
+        console.error('Sipariş kaydedilirken hata:', error);
+        res.status(500).json({ success: false, message: 'Sipariş alınırken bir hata oluştu.' });
+    }
 });
 
 
