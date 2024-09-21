@@ -686,6 +686,18 @@ app.post('/order/:tableNumber', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/qrcodes', async (req, res) => {
+    const tableNumbers = [1, 2, 3, 4, 5]; // Masalar numaraları
+    const qrCodes = await Promise.all(tableNumbers.map(num => generateQRCodeForTable(num)));
+
+    let html = '<h1>QR Kodlar</h1>';
+    qrCodes.forEach((qrCode, index) => {
+        html += `<h2>Masa ${index + 1}</h2><img src="${qrCode}" />`;
+    });
+
+    res.send(html);
+});
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
