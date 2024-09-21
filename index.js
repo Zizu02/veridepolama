@@ -73,7 +73,7 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// PayTR ödeme token oluşturma fonksiyonu
+// PayTR Token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
     // Sepet encode edilirken log ekleyelim
     const encodedBasket = Buffer.from(JSON.stringify(user_basket)).toString('base64');
@@ -138,19 +138,20 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         console.log('Toplam tutar hesaplandı:', totalAmountInCents);
 
-        // IP adresini IPv4 formatına çevirin
-        const ipv4 = req.ip.split(':').pop(); // IPv6 formatından IPv4'e çevirme
-        console.log('Kullanıcının IP Adresi:', ipv4);
+        // Kullanıcının IP'sini IPv4 formatına çevir
+        const ipv4 = req.ip.split(':').pop();
+        console.log('Kullanıcı IP adresi:', ipv4);
 
         // PayTR ödeme isteğini gönder
-        const merchantOid = generateMerchantOid();
-        const token = createPaytrToken(req.ip, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
+        const merchantOid = `oid_${Date.now()}`;
+        const token = createPaytrToken(ipv4, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
 
         console.log('PayTR Token oluşturuldu:', token);
 
-        await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: MERCHANT_ID,
-            user_ip: ipv4, // IP burada IPv4 formatında
+        // PayTR API isteği
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
+            merchant_id: process.env.MERCHANT_ID,
+            user_ip: ipv4,
             merchant_oid: merchantOid,
             email: email,
             payment_amount: totalAmountInCents,
@@ -170,22 +171,25 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             headers: {
                 'Content-Type': 'application/json'
             }
-        })
-        .then(response => {
-            console.log("PayTR API yanıt kodu:", response.status);
-            console.log("PayTR API yanıt verisi:", response.data);
-            res.json({ success: true, token: response.data.token });
-        })
-        .catch(error => {
-            if (error.response) {
-                console.error('PayTR API hatası:', error.response.status, error.response.data);
-            } else {
-                console.error('Sunucu hatası:', error.message);
-            }
-            res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
         });
-    } catch (err) {
-        console.error('Sunucu hatası:', err);
+
+        console.log("PayTR API yanıt kodu:", response.status);
+        console.log("PayTR API yanıt verisi:", response.data);
+
+        // Eğer API yanıtı başarılıysa, kullanıcıyı ödeme sayfasına yönlendir
+        if (response.data.status === 'success') {
+            res.status(200).json({ success: true, token: response.data.token });
+        } else {
+            console.error("PayTR API hatası:", response.data);
+            res.status(500).json({ success: false, message: 'Ödeme işlemi sırasında bir hata oluştu!' });
+        }
+
+    } catch (error) {
+        if (error.response) {
+            console.error('PayTR API hatası:', error.response.status, error.response.data);
+        } else {
+            console.error('Sunucu hatası:', error.message);
+        }
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
