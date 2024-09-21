@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const hmacSHA256 = require('crypto-js/hmac-sha256');
 const Base64 = require('crypto-js/enc-base64'); 
 const axios = require('axios'); // HTTP istekleri için axios'u kullanacağız
+const QRCode = require('qrcode');
 require('dotenv').config();
 
 const productsModel = require('./src/models/productsModel');
@@ -131,6 +132,18 @@ function generateMerchantOid() {
     const merchantOid = 'oid_' + new Date().getTime();
     console.log('Oluşturulan merchant_oid:', merchantOid);
     return merchantOid;
+}
+
+function generateQRCode(tableId) {
+    const qrData = `https://sapphire-algae-9ajt.squarespace.com/order?table=${tableId}`;
+    return QRCode.toDataURL(qrData, function (err, url) {
+        if (err) {
+            console.error('QR kod oluşturulamadı:', err);
+        } else {
+            console.log('QR Kod:', url);
+            return url;  // QR kodu bir URL olarak dönecek
+        }
+    });
 }
 
 // PayTR ödeme oluşturma endpointi
