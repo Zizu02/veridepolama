@@ -30,6 +30,11 @@ const MERCHANT_ID = '492579';
 const MERCHANT_KEY = 'Gxm6ww6x6hbPJmg6';
 const MERCHANT_SALT = 'RbuMk9kDZ2bCa5K2';
 
+app.use(cors({
+    origin: 'https://sapphire-algae-9ajt.squarespace.com'
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Nodemailer Transporter yapılandırması
 const transporter = nodemailer.createTransport({
@@ -43,32 +48,32 @@ const transporter = nodemailer.createTransport({
 console.log(process.env.EMAIL_USER);
 console.log(process.env.EMAIL_PASS);
 
-app.use(cors({
-    origin: 'https://sapphire-algae-9ajt.squarespace.com'
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 
 
 // JWT oluşturma fonksiyonu
 function generateToken(userId) {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log('JWT token oluşturuluyor...');
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log('JWT token oluşturuldu:', token);
+    return token;
 }
 
-function authenticateToken(req, res, next) {
+
+unction authenticateToken(req, res, next) {
+    console.log('JWT doğrulama başlıyor...');
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
     if (token == null) {
         console.log('Token yok.');
-        return res.sendStatus(401);  // 401: Token yok
+        return res.sendStatus(401);
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
             console.log('JWT doğrulama hatası:', err.message);
-            return res.sendStatus(403);  // 403: Token geçersiz
+            return res.sendStatus(403);
         }
 
         req.user = user;
@@ -79,15 +84,14 @@ function authenticateToken(req, res, next) {
 
 
 // PayTR Token oluşturma fonksiyonu
-// PayTR Token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
-    // Sepet encode edilirken log ekleyelim
+    console.log('Sepet encode ediliyor...');
     const encodedBasket = Buffer.from(JSON.stringify(user_basket)).toString('base64');
     console.log('Base64 Encode Edilmiş Sepet:', encodedBasket);
 
-    // Hash stringi oluştururken log ekleyelim
+    console.log('Hash string oluşturuluyor...');
     const hash_str = [
-        MERCHANT_ID,  // .env yerine sabit değişken kullanılıyor
+        MERCHANT_ID,
         user_ip,
         merchant_oid,
         email,
@@ -101,10 +105,9 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
     console.log('Oluşturulan Hash String:', hash_str);
 
-    // Token oluşturma işlemi
-    const paytr_token = hash_str + MERCHANT_SALT;  // .env yerine sabit değişken kullanılıyor
-    const token = crypto.createHmac('sha256', MERCHANT_KEY).update(paytr_token).digest('base64');  // .env yerine sabit değişken kullanılıyor
-
+    console.log('PayTR Token oluşturuluyor...');
+    const paytr_token = hash_str + MERCHANT_SALT;
+    const token = crypto.createHmac('sha256', MERCHANT_KEY).update(paytr_token).digest('base64');
     console.log('Oluşturulan PayTR Token:', token);
 
     return token;
@@ -113,8 +116,10 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
 // Kullanıcının gerçek IP'sini almak için fonksiyon
 function getRealIp(req) {
+    console.log('Gerçek IP adresi alınıyor...');
     const forwarded = req.headers['x-forwarded-for'];
     const ip = forwarded ? forwarded.split(/, /)[0] : req.connection.remoteAddress;
+    console.log('Gerçek IP adresi:', ip);
     return ip;
 }
 
@@ -122,13 +127,18 @@ function getRealIp(req) {
 
 // Benzersiz merchant_oid oluşturma fonksiyonu
 function generateMerchantOid() {
-    return 'oid_' + new Date().getTime();  // Benzersiz bir sipariş numarası
+    console.log('Benzersiz merchant_oid oluşturuluyor...');
+    const merchantOid = 'oid_' + new Date().getTime();
+    console.log('Oluşturulan merchant_oid:', merchantOid);
+    return merchantOid;
 }
 
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', authenticateToken, async (req, res) => {
+    console.log('Ödeme oluşturma işlemi başladı...');
     const { email, address, phone, items, totalAmount } = req.body;
     const userId = req.user.userId;
+    console.log('Kullanıcı ID:', userId);
 
     try {
         console.log('Ödeme isteği alındı:', { email, address, phone, items });
@@ -144,7 +154,9 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
                 const price = product.rows[0].price;
                 totalAmountInCents += price * item.quantity * 100;
                 verifiedItems.push([item.name, "Ürün açıklaması", price * 100]);
+                console.log('Ürün onaylandı:', item.name, price);
             } else {
+                console.error('Ürün bulunamadı:', item.name);
                 return res.status(400).json({ success: false, message: 'Ürün bulunamadı: ' + item.name });
             }
         }
@@ -155,14 +167,15 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         const ipv4 = getRealIp(req);
         console.log('Kullanıcı IP adresi:', ipv4);
 
-        const merchantOid = `oid_${Date.now()}`;
+        const merchantOid = generateMerchantOid();
         const token = createPaytrToken(ipv4, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
 
         console.log('PayTR Token oluşturuldu:', token);
 
         // PayTR API isteği
+        console.log('PayTR API isteği yapılıyor...');
         const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: process.env.MERCHANT_ID,
+            merchant_id: MERCHANT_ID,
             user_ip: ipv4,
             merchant_oid: merchantOid,
             email: email,
@@ -204,11 +217,6 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
-
-
-
-
-
 
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
