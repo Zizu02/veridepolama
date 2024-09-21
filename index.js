@@ -698,6 +698,17 @@ app.get('/qrcodes', async (req, res) => {
     res.send(html);
 });
 
+// Ürünleri veritabanından çeken endpoint
+app.get('/products', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT name, price FROM products');
+        res.json({ success: true, products: result.rows });
+    } catch (error) {
+        console.error('Ürünler alınırken hata:', error);
+        res.status(500).json({ success: false, message: 'Ürünler alınamadı!' });
+    }
+});
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
