@@ -26,13 +26,9 @@ const pool = new Pool({
     }
 });
 
-// PayTR için gerekli bilgiler (ENV değişkenlerinden alınacak)
-const MERCHANT_ID = process.env.MERCHANT_ID;
-const MERCHANT_KEY = process.env.MERCHANT_KEY;
-const MERCHANT_SALT = process.env.MERCHANT_SALT;
-console.log('Merchant ID:', process.env.MERCHANT_ID);
-console.log('Merchant Key:', process.env.MERCHANT_KEY);
-console.log('Merchant Salt:', process.env.MERCHANT_SALT);
+const MERCHANT_ID = '492579';
+const MERCHANT_KEY = 'Gxm6ww6x6hbPJmg6';
+const MERCHANT_SALT = 'RbuMk9kDZ2bCa5K2';
 
 
 // Nodemailer Transporter yapılandırması
@@ -83,6 +79,7 @@ function authenticateToken(req, res, next) {
 
 
 // PayTR Token oluşturma fonksiyonu
+// PayTR Token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
     // Sepet encode edilirken log ekleyelim
     const encodedBasket = Buffer.from(JSON.stringify(user_basket)).toString('base64');
@@ -90,7 +87,7 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
 
     // Hash stringi oluştururken log ekleyelim
     const hash_str = [
-        process.env.MERCHANT_ID,     // .env dosyasından değerler alınıyor
+        MERCHANT_ID,  // .env yerine sabit değişken kullanılıyor
         user_ip,
         merchant_oid,
         email,
@@ -105,13 +102,14 @@ function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_bas
     console.log('Oluşturulan Hash String:', hash_str);
 
     // Token oluşturma işlemi
-    const paytr_token = hash_str + process.env.MERCHANT_SALT;  // MERCHANT_SALT environment'tan alınıyor
-    const token = crypto.createHmac('sha256', process.env.MERCHANT_KEY).update(paytr_token).digest('base64');  // MERCHANT_KEY environment'tan alınıyor
+    const paytr_token = hash_str + MERCHANT_SALT;  // .env yerine sabit değişken kullanılıyor
+    const token = crypto.createHmac('sha256', MERCHANT_KEY).update(paytr_token).digest('base64');  // .env yerine sabit değişken kullanılıyor
 
     console.log('Oluşturulan PayTR Token:', token);
 
     return token;
 }
+
 
 // Kullanıcının gerçek IP'sini almak için fonksiyon
 function getRealIp(req) {
