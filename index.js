@@ -647,7 +647,7 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
 // Masaya özel QR kodu oluşturma endpoint'i
 app.get('/generate-qr/:tableNumber', (req, res) => {
     const tableNumber = req.params.tableNumber;
-    const orderUrl = `https://sapphire-algae-9ajt.squarespace.com/order/${tableNumber}`; // Sipariş URL'si
+    const orderUrl = `https://sapphire-algae-9ajt.squarespace.com/qrkodsiparisi?table=${tableNumber}`; // Sipariş URL'si masa bilgisiyle
 
     // QR kodunu oluştur
     QRCode.toDataURL(orderUrl, (err, qrCode) => {
@@ -663,6 +663,7 @@ app.get('/generate-qr/:tableNumber', (req, res) => {
         `);
     });
 });
+
 
 
 // Masaya özel sipariş endpoint'i
