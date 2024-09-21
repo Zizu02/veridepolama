@@ -667,6 +667,7 @@ app.get('/generate-qr/:tableNumber', (req, res) => {
 
 
 // Masaya özel sipariş endpoint'i
+// Sipariş oluşturma endpoint'i (JWT doğrulaması ile)
 app.post('/order/:tableNumber', authenticateToken, async (req, res) => {
     const tableNumber = req.params.tableNumber; // QR koddan gelen masa numarası
     const { items, totalAmount } = req.body;    // Sipariş detayları
@@ -686,6 +687,7 @@ app.post('/order/:tableNumber', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Sipariş alınırken bir hata oluştu.' });
     }
 });
+
 
 app.get('/qrcodes', async (req, res) => {
     const tableNumbers = [1, 2, 3, 4, 5]; // Masalar numaraları
