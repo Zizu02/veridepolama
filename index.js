@@ -60,7 +60,7 @@ function generateToken(userId) {
 }
 
 
-unction authenticateToken(req, res, next) {
+function authenticateToken(req, res, next) {
     console.log('JWT doğrulama başlıyor...');
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
