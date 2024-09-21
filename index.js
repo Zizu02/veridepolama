@@ -178,7 +178,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
             merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
             timeout_limit: 30,
             currency: "TL",
-            test_mode: 1
+            test_mode: 0
         }, {
             headers: {
                 'Content-Type': 'application/json'
