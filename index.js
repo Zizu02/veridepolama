@@ -644,7 +644,6 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
     }
 });
 
-const QRCode = require('qrcode');
 
 // Masaya özel QR kodu oluşturma endpoint'i
 app.get('/generate-qr/:tableNumber', (req, res) => {
