@@ -128,7 +128,6 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
     try {
         console.log('Ödeme isteği alındı:', { email, address, phone, items });
 
-        // Ödeme için verifiedItems ve toplam tutarı hesaplayın
         const verifiedItems = [];
         let totalAmountInCents = 0;
 
@@ -147,11 +146,10 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         console.log('Toplam tutar hesaplandı:', totalAmountInCents);
 
-        // Kullanıcının IP'sini IPv4 formatına çevir
-        const ipv4 = req.ip.split(':').pop();
+        // Dış IP kontrolü
+        const ipv4 = getRealIp(req);
         console.log('Kullanıcı IP adresi:', ipv4);
 
-        // PayTR ödeme isteğini gönder
         const merchantOid = `oid_${Date.now()}`;
         const token = createPaytrToken(ipv4, merchantOid, email, totalAmountInCents, verifiedItems, 0, 12, 'TL', 1);
 
@@ -185,7 +183,6 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         console.log("PayTR API yanıt kodu:", response.status);
         console.log("PayTR API yanıt verisi:", response.data);
 
-        // Eğer API yanıtı başarılıysa, kullanıcıyı ödeme sayfasına yönlendir
         if (response.data.status === 'success') {
             res.status(200).json({ success: true, token: response.data.token });
         } else {
@@ -202,6 +199,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 
