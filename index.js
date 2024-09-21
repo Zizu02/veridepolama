@@ -51,6 +51,7 @@ app.use(cors({
     origin: 'https://sapphire-algae-9ajt.squarespace.com'
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 
@@ -200,24 +201,53 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
+// Bildirim URL'si
 app.post('/paytr_callback', (req, res) => {
-    const { merchant_oid, status, total_amount, hash } = req.body;
+    const {
+        merchant_oid,
+        status,
+        total_amount,
+        hash,
+        payment_type,
+        currency,
+        test_mode,
+        failed_reason_code,
+        failed_reason_msg
+    } = req.body;
 
-    const hash_str = `${merchant_oid}${MERCHANT_SALT}${status}${total_amount}`;
-    const generated_hash = Base64.stringify(hmacSHA256(hash_str, MERCHANT_KEY));
+    // Gelen verileri loglayalım
+    console.log('PayTR Bildirimi Alındı:', req.body);
 
+    // Hash doğrulama için gelen verilerle kendi hash'imizi oluşturalım
+    const hash_str = [
+        merchant_oid,
+        process.env.MERCHANT_SALT,
+        status,
+        total_amount
+    ].join('');
+
+    // Kendi oluşturduğumuz hash değeri
+    const generated_hash = crypto.createHmac('sha256', process.env.MERCHANT_KEY)
+        .update(hash_str)
+        .digest('base64');
+
+    // Hash eşleşmesini kontrol edin
     if (generated_hash !== hash) {
-        return res.status(400).send('Hash doğrulaması başarısız oldu.');
+        console.error('Hash doğrulaması başarısız!');
+        return res.status(400).send('Hash doğrulaması başarısız');
     }
 
+    // Başarılı ödeme durumu
     if (status === 'success') {
-        console.log(`Sipariş ${merchant_oid} başarılı!`);
-        // Veritabanına başarıyı işleyin
+        console.log(`Sipariş başarılı: ${merchant_oid}, Tutar: ${total_amount}`);
+        // Siparişi onaylayın veya işleyin
     } else {
-        console.log(`Sipariş ${merchant_oid} başarısız!`);
-        // Başarısızlık durumunu işleyin
+        // Başarısız ödeme durumu
+        console.log(`Sipariş başarısız: ${merchant_oid}, Sebep: ${failed_reason_msg}`);
+        // Siparişi iptal edin veya işleyin
     }
 
+    // PayTR'a OK yanıtını gönderin (aksi takdirde işlem onaylanmaz)
     res.send('OK');
 });
 
@@ -585,21 +615,6 @@ app.post('/validate_order', authenticateToken, async (req, res) => {
 
 
 
-app.listen(process.env.PORT || 10000, () => {
-    process.stdout.write('Bu bir stdout mesajıdır\n');  // stdout loglama
-    process.stderr.write('Bu bir stderr hata mesajıdır\n');  // stderr hata loglama
-    console.log('Sunucu çalışıyor');  // Normal log
-});
-
-
-// Beklenmeyen hatalar için
-process.on('uncaughtException', (err) => {
-    process.stderr.write(`Beklenmeyen Hata: ${err}\n`);
-    console.error('Beklenmeyen Hata:', err);
-});
-
-// Promise hataları için
-process.on('unhandledRejection', (reason, promise) => {
-    process.stderr.write(`Yakalanmayan Promise Hatası: ${reason}\n`);
-    console.error('Yakalanmayan Promise Hatası:', reason);
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
