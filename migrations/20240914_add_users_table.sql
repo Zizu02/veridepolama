@@ -27,3 +27,17 @@ INSERT INTO products (name, price) VALUES
 ('Limonata', 2.00),
 ('Hamburger Menü', 13.00),
 ('Pizza Menü', 18.00);
+
+ALTER TABLE orders ADD COLUMN table_number VARCHAR(255);
+
+INSERT INTO orders (table_number) VALUES
+('Masa 1'),
+('Masa 2'),
+('Masa 3'),
+('Masa 4'),
+('Masa 5'),
+('Masa 6'),
+('Masa 7'),
+('Masa 8'),
+('Masa 9'),
+('Masa 10');
