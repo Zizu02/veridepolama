@@ -60,19 +60,27 @@ function generateToken(userId) {
     return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
-// JWT doğrulama fonksiyonu
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
-    if (token == null) return res.sendStatus(401);
+    
+    if (token == null) {
+        console.log('Token yok.');
+        return res.sendStatus(401);  // 401: Token yok
+    }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
+        if (err) {
+            console.log('JWT doğrulama hatası:', err.message);
+            return res.sendStatus(403);  // 403: Token geçersiz
+        }
+
         req.user = user;
+        console.log('JWT doğrulandı:', user);
         next();
     });
 }
+
 
 // PayTR Token oluşturma fonksiyonu
 function createPaytrToken(user_ip, merchant_oid, email, payment_amount, user_basket, no_installment, max_installment, currency, test_mode) {
