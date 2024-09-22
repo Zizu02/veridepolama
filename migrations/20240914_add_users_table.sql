@@ -36,16 +36,3 @@ CREATE TABLE table_orders (
     status VARCHAR(50) DEFAULT 'onay bekliyor', -- Sipariş durumu
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Sipariş oluşturulma zamanı
 );
-
-
-INSERT INTO orders (table_number) VALUES
-('Masa 1'),
-('Masa 2'),
-('Masa 3'),
-('Masa 4'),
-('Masa 5'),
-('Masa 6'),
-('Masa 7'),
-('Masa 8'),
-('Masa 9'),
-('Masa 10');
