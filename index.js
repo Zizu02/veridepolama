@@ -666,26 +666,27 @@ app.get('/generate-qr/:tableNumber', (req, res) => {
 
 
 
-// Masaya özel sipariş endpoint'i (JWT doğrulama olmadan)
+// Masaya özel sipariş endpoint'i
 app.post('/order/:tableNumber', async (req, res) => {
-    const tableNumber = req.params.tableNumber; // QR koddan gelen masa numarası
-    const { items, totalAmount } = req.body;    // Sipariş detayları
+    const tableNumber = req.params.tableNumber;  // QR koddan gelen masa numarası
+    const { items, totalAmount } = req.body;     // Sipariş detayları
 
     console.log(`Masa ${tableNumber} için sipariş alındı.`);
     console.log('Sipariş Detayları:', { items, totalAmount });
 
     try {
-        // Siparişi veritabanına kaydetme
+        // QR kodlu siparişi veritabanına kaydetme
         const result = await pool.query(
-            'INSERT INTO orders (table_number, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
+            'INSERT INTO table_orders (table_number, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
             [tableNumber, JSON.stringify(items), totalAmount]
         );
-        res.json({ success: true, message: 'Sipariş başarıyla alındı!', order: result.rows[0] });
+        res.json({ success: true, message: 'QR kodlu sipariş başarıyla alındı!', order: result.rows[0] });
     } catch (error) {
         console.error('Sipariş kaydedilirken hata:', error);
         res.status(500).json({ success: false, message: 'Sipariş alınırken bir hata oluştu.' });
     }
 });
+
 
 
 
