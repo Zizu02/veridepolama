@@ -28,7 +28,15 @@ INSERT INTO products (name, price) VALUES
 ('Hamburger Menü', 13.00),
 ('Pizza Menü', 18.00);
 
-ALTER TABLE orders ADD COLUMN table_number VARCHAR(255);
+CREATE TABLE table_orders (
+    id SERIAL PRIMARY KEY,
+    table_number VARCHAR(255) NOT NULL,  -- Masanın numarası
+    items JSONB NOT NULL,                -- Sipariş edilen ürünler
+    total_amount DECIMAL(10, 2) NOT NULL, -- Toplam tutar
+    status VARCHAR(50) DEFAULT 'onay bekliyor', -- Sipariş durumu
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Sipariş oluşturulma zamanı
+);
+
 
 INSERT INTO orders (table_number) VALUES
 ('Masa 1'),
