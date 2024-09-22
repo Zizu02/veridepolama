@@ -742,6 +742,21 @@ app.get('/products', async (req, res) => {
     }
 });
 
+// QR Kodlu siparişleri listeleme endpoint'i
+app.get('/table_orders', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, table_number, items, total_amount, status, created_at 
+             FROM table_orders 
+             ORDER BY created_at DESC`
+        );
+        res.json({ success: true, orders: result.rows });
+    } catch (err) {
+        console.error('Sunucu hatası:', err);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
+    }
+});
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
