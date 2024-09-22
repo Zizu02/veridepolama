@@ -529,16 +529,25 @@ app.post('/create_order', authenticateToken, async (req, res) => {
 
 
 // Sipariş durumunu güncelleme (Sadece site sahibi)
-// Sipariş statüsünü güncelleyen endpoint
-app.put('/update_order_status', authenticateToken, async (req, res) => {
-    const { orderId, status } = req.body;
+app.put('/update_order_status', async (req, res) => {
+    const { orderId, status, isQrCodeOrder } = req.body;
 
     try {
-        // Sipariş durumunu güncelle
-        const result = await pool.query(
-            'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
-            [status, orderId]
-        );
+        let result;
+        
+        if (isQrCodeOrder) {
+            // QR kodlu siparişlerin tablosunda durum güncelleniyor
+            result = await pool.query(
+                'UPDATE table_orders SET status = $1 WHERE id = $2 RETURNING *',
+                [status, orderId]
+            );
+        } else {
+            // Normal siparişlerin tablosunda durum güncelleniyor
+            result = await pool.query(
+                'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+                [status, orderId]
+            );
+        }
 
         if (result.rows.length > 0) {
             res.json({
@@ -556,24 +565,44 @@ app.put('/update_order_status', authenticateToken, async (req, res) => {
 });
 
 
+
 // Kullanıcının tüm siparişlerini çekme
 app.get('/my_orders', authenticateToken, async (req, res) => {
-    const userId = req.user.userId;  // Token'dan kullanıcı ID'si alınıyor
+    const isQrCodeOrder = req.query.isQrCodeOrder; // İstemciden QR kod siparişi olup olmadığını alıyoruz
+    let userId;
+
+    if (!isQrCodeOrder) {
+        userId = req.user.userId;  // Normal siparişlerde token'dan kullanıcı ID'si alınıyor
+    }
 
     try {
-        const result = await pool.query(
-            `SELECT id, items, total_amount, status, created_at 
-             FROM orders 
-             WHERE user_id = $1 
-             ORDER BY created_at DESC`,
-            [userId]
-        );
+        let result;
+
+        if (isQrCodeOrder) {
+            // QR kodlu siparişler için tabloyu kullanıyoruz
+            result = await pool.query(
+                `SELECT id, items, total_amount, status, created_at 
+                 FROM table_orders 
+                 ORDER BY created_at DESC`
+            );
+        } else {
+            // Normal siparişler için tabloyu kullanıyoruz
+            result = await pool.query(
+                `SELECT id, items, total_amount, status, created_at 
+                 FROM orders 
+                 WHERE user_id = $1 
+                 ORDER BY created_at DESC`,
+                [userId]
+            );
+        }
+
         res.json({ success: true, orders: result.rows });
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 // Site sahibinin tüm siparişleri görmesi
