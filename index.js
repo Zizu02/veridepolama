@@ -147,11 +147,36 @@ function generateQRCodeForTable(tableNumber) {
 }
 
 // PayTR ödeme oluşturma endpointi
-app.post('/create_payment', authenticateToken, async (req, res) => {
+app.post('/create_payment', async (req, res) => {
+    // QR kod siparişi olup olmadığını kontrol et
+    const isQrCodeOrder = req.body.isQrCodeOrder || false;
+
+    if (!isQrCodeOrder) {
+        // Eğer QR kod siparişi değilse, JWT doğrulaması yap
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Token bulunamadı.' });
+        }
+
+        try {
+            // JWT doğrulama
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = decoded;
+            console.log('JWT doğrulandı:', decoded);
+        } catch (err) {
+            return res.status(403).json({ success: false, message: 'Geçersiz veya süresi dolmuş token.' });
+        }
+    }
+
     console.log('Ödeme oluşturma işlemi başladı...');
     const { email, address, phone, items, totalAmount } = req.body;
-    const userId = req.user.userId;
-    console.log('Kullanıcı ID:', userId);
+    const userId = req.user?.userId || null;  // QR kod siparişinde userId olmayabilir
+
+    if (userId) {
+        console.log('Kullanıcı ID:', userId);
+    }
 
     try {
         console.log('Ödeme isteği alındı:', { email, address, phone, items });
