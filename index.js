@@ -184,29 +184,31 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
 
         console.log('PayTR Token oluşturuldu:', token);
 
-        // PayTR API isteği
+        // PayTR API isteği (application/x-www-form-urlencoded formatı)
         console.log('PayTR API isteği yapılıyor...');
-        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', {
-            merchant_id: MERCHANT_ID,
-            user_ip: ipv4,
-            merchant_oid: merchantOid,
-            email: email,
-            payment_amount: totalAmountInCents,
-            user_basket: Buffer.from(JSON.stringify(verifiedItems)).toString('base64'),
-            paytr_token: token,
-            no_installment: 0,
-            max_installment: 12,
-            user_name: "John Doe",
-            user_address: address,
-            user_phone: phone,
-            merchant_ok_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-            merchant_fail_url: "https://sapphire-algae-9ajt.squarespace.com/cart",
-            timeout_limit: 30,
-            currency: "TL",
-            test_mode: 1
-        }, {
+        
+        const formData = new URLSearchParams();
+        formData.append('merchant_id', MERCHANT_ID);
+        formData.append('user_ip', ipv4);
+        formData.append('merchant_oid', merchantOid);
+        formData.append('email', email);
+        formData.append('payment_amount', totalAmountInCents);
+        formData.append('user_basket', Buffer.from(JSON.stringify(verifiedItems)).toString('base64'));
+        formData.append('paytr_token', token);
+        formData.append('no_installment', '0');
+        formData.append('max_installment', '12');
+        formData.append('user_name', "John Doe"); // Gerçek kullanıcı adını kullanın
+        formData.append('user_address', address);
+        formData.append('user_phone', phone);
+        formData.append('merchant_ok_url', "https://sapphire-algae-9ajt.squarespace.com/cart");
+        formData.append('merchant_fail_url', "https://sapphire-algae-9ajt.squarespace.com/cart");
+        formData.append('timeout_limit', '30');
+        formData.append('currency', "TL");
+        formData.append('test_mode', '1');
+
+        const response = await axios.post('https://www.paytr.com/odeme/api/get-token', formData.toString(), {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
         });
 
@@ -229,6 +231,7 @@ app.post('/create_payment', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 // Ödeme onay callback endpointi (PayTR geri dönüş yapar)
