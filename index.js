@@ -747,8 +747,6 @@ app.post('/order/:tableNumber', async (req, res) => {
 });
 
 
-
-
 app.get('/qrcodes', async (req, res) => {
     const tableNumbers = [1, 2, 3, 4, 5]; // Masalar numaraları
     const qrCodes = await Promise.all(tableNumbers.map(num => generateQRCodeForTable(num)));
@@ -775,17 +773,25 @@ app.get('/products', async (req, res) => {
 // QR Kodlu siparişleri listeleme endpoint'i
 app.get('/table_orders', async (req, res) => {
     try {
+        console.log("QR kod siparişleri sorgusu başlıyor...");
         const result = await pool.query(
             `SELECT id, table_number, items, total_amount, status, created_at 
              FROM table_orders 
              ORDER BY created_at DESC`
         );
-        res.json({ success: true, orders: result.rows });
+        console.log("Sorgu başarılı, sonuçlar:", result.rows);
+
+        if (result.rows.length > 0) {
+            res.json({ success: true, orders: result.rows });
+        } else {
+            res.json({ success: true, orders: [], message: "Herhangi bir QR kodlu sipariş bulunamadı." });
+        }
     } catch (err) {
         console.error('Sunucu hatası:', err);
         res.status(500).json({ success: false, message: 'Bir hata oluştu!' });
     }
 });
+
 
 
 app.listen(3000, () => {
