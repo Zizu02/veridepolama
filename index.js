@@ -736,15 +736,18 @@ app.post('/order/:tableNumber', async (req, res) => {
     try {
         // Siparişi veritabanına kaydetme
         const result = await pool.query(
-            'INSERT INTO table_orders (table_number, items, total_amount) VALUES ($1, $2, $3) RETURNING *',
-            [tableNumber, JSON.stringify(items), totalAmount]
+            'INSERT INTO table_orders (table_number, items, total_amount, status, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+            [tableNumber, JSON.stringify(items), totalAmount, 'onay bekliyor']
         );
+        
+        console.log('Sipariş veritabanına başarıyla kaydedildi:', result.rows[0]);
         res.json({ success: true, message: 'Sipariş başarıyla alındı!', order: result.rows[0] });
     } catch (error) {
-        console.error('Sipariş kaydedilirken hata:', error);
+        console.error('Sipariş kaydedilirken hata oluştu:', error);
         res.status(500).json({ success: false, message: 'Sipariş alınırken bir hata oluştu.' });
     }
 });
+
 
 
 app.get('/qrcodes', async (req, res) => {
