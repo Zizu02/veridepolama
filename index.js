@@ -129,7 +129,8 @@ function getRealIp(req) {
 // Benzersiz merchant_oid oluşturma fonksiyonu
 function generateMerchantOid() {
     console.log('Benzersiz merchant_oid oluşturuluyor...');
-    const merchantOid = 'oid_' + new Date().getTime();
+    const timestamp = new Date().getTime().toString(); // Zaman damgasını alır
+    const merchantOid = 'oid' + timestamp; // Alfanumerik bir merchant_oid oluşturur
     console.log('Oluşturulan merchant_oid:', merchantOid);
     return merchantOid;
 }
