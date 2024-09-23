@@ -795,6 +795,57 @@ app.get('/table_orders', async (req, res) => {
     }
 });
 
+app.put('/update_qr_order_status', async (req, res) => {
+    const { orderId, status } = req.body;
+
+    try {
+        // Siparişi güncelleme
+        const result = await pool.query(
+            'UPDATE table_orders SET status = $1 WHERE id = $2 RETURNING *',
+            [status, orderId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        }
+
+        console.log('Sipariş durumu başarıyla güncellendi:', result.rows[0]);
+        res.json({ success: true, message: 'Sipariş durumu güncellendi!', order: result.rows[0] });
+    } catch (error) {
+        console.error('Sipariş güncellenirken hata oluştu:', error);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
+    }
+});
+
+app.post('/paytr_notification', async (req, res) => {
+    const { hash, merchant_oid, status, total_amount } = req.body;
+
+    try {
+        console.log('PayTR Bildirimi Alındı:', req.body);
+
+        // Sipariş veritabanında var mı kontrol et
+        const result = await pool.query('SELECT * FROM table_orders WHERE oid = $1', [merchant_oid]);
+
+        if (result.rows.length === 0) {
+            // Eğer sipariş yoksa, hata dön
+            console.error('Sipariş bulunamadı:', merchant_oid);
+            return res.status(404).json({ success: false, message: 'Sipariş bulunamadı.' });
+        }
+
+        // Sipariş güncelleniyor
+        await pool.query(
+            'UPDATE table_orders SET status = $1, total_amount = $2 WHERE oid = $3',
+            [status, total_amount, merchant_oid]
+        );
+
+        console.log('Sipariş başarılı:', merchant_oid, 'Tutar:', total_amount);
+        res.send('OK'); // PayTR başarılı yanıt bekliyor, bu yüzden 'OK' dönülmeli
+
+    } catch (error) {
+        console.error('Hata oluştu:', error);
+        res.status(500).json({ success: false, message: 'Bir hata oluştu.' });
+    }
+});
 
 
 app.listen(3000, () => {
