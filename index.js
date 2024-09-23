@@ -151,7 +151,7 @@ function generateQRCodeForTable(tableNumber) {
 // PayTR ödeme oluşturma endpointi
 app.post('/create_payment', async (req, res) => {
     // QR kod siparişi olup olmadığını kontrol et
-    const isQrCodeOrder = req.body.isQrCodeOrder || false;
+    const { email, address, phone, items, totalAmount, isQrCodeOrder } = req.body;
 
     if (!isQrCodeOrder) {
         // Eğer QR kod siparişi değilse, JWT doğrulaması yap
@@ -173,7 +173,6 @@ app.post('/create_payment', async (req, res) => {
     }
 
     console.log('Ödeme oluşturma işlemi başladı...');
-    const { email, address, phone, items, totalAmount } = req.body;
     const userId = req.user?.userId || null;  // QR kod siparişinde userId olmayabilir
 
     if (userId) {
