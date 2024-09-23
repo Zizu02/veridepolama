@@ -32,7 +32,9 @@ const MERCHANT_KEY = 'Gxm6ww6x6hbPJmg6';
 const MERCHANT_SALT = 'RbuMk9kDZ2bCa5K2';
 
 app.use(cors({
-    origin: 'https://sapphire-algae-9ajt.squarespace.com'
+    origin: 'https://sapphire-algae-9ajt.squarespace.com', // Sitenizin domaini
+    methods: ['GET', 'POST', 'PUT'],
+    credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
